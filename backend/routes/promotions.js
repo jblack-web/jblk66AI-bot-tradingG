@@ -8,8 +8,10 @@ router.get('/', async (req, res) => {
     const now = new Date();
     const promos = await Promotion.find({
       isActive: true,
-      $or: [{ validFrom: { $lte: now } }, { validFrom: null }],
-      $or: [{ validTo: { $gte: now } }, { validTo: null }],
+      $and: [
+        { $or: [{ validFrom: { $lte: now } }, { validFrom: null }] },
+        { $or: [{ validTo: { $gte: now } }, { validTo: null }] },
+      ],
     }).select('code description discountPercentage discountAmount validTo tierRestrictions');
 
     res.json({ promotions: promos });
@@ -31,8 +33,10 @@ router.post('/validate', authenticateToken, async (req, res) => {
     const promo = await Promotion.findOne({
       code: code.toUpperCase(),
       isActive: true,
-      $or: [{ validFrom: { $lte: now } }, { validFrom: null }],
-      $or: [{ validTo: { $gte: now } }, { validTo: null }],
+      $and: [
+        { $or: [{ validFrom: { $lte: now } }, { validFrom: null }] },
+        { $or: [{ validTo: { $gte: now } }, { validTo: null }] },
+      ],
     });
 
     if (!promo) {

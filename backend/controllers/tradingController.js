@@ -1,5 +1,9 @@
 const Trade = require('../models/Trade');
 const User = require('../models/User');
+const { sanitizeEnum } = require('../utils/sanitize');
+
+const ALLOWED_TRADE_TYPES = ['options', 'futures', 'spot'];
+const ALLOWED_ASSETS = ['BTC', 'ETH', 'GOLD', 'SILVER'];
 
 const BASE_PRICES = {
   BTC: 43250.5,
@@ -189,8 +193,10 @@ const getTradeHistory = async (req, res) => {
 
     const query = { user: req.user._id, status: { $in: ['closed', 'expired', 'cancelled'] } };
 
-    if (req.query.type) query.type = req.query.type;
-    if (req.query.asset) query.asset = req.query.asset;
+    const safeType = sanitizeEnum(req.query.type, ALLOWED_TRADE_TYPES);
+    const safeAsset = sanitizeEnum(req.query.asset, ALLOWED_ASSETS);
+    if (safeType) query.type = safeType;
+    if (safeAsset) query.asset = safeAsset;
 
     const [trades, total] = await Promise.all([
       Trade.find(query).sort({ closedAt: -1 }).skip(skip).limit(limit),

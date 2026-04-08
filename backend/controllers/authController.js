@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const User = require('../models/User');
 const Membership = require('../models/Membership');
 const Referral = require('../models/Referral');
+const { sanitizeString } = require('../utils/sanitize');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'jblk66ai-secret-key-2024';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -32,7 +33,10 @@ const register = async (req, res) => {
 
     let referredByUser = null;
     if (usedCode) {
-      referredByUser = await User.findOne({ referralCode: usedCode });
+      const safeCode = sanitizeString(usedCode);
+      if (safeCode) {
+        referredByUser = await User.findOne({ referralCode: safeCode });
+      }
     }
 
     const verificationToken = uuidv4();
@@ -196,9 +200,15 @@ const updateProfile = async (req, res) => {
   try {
     const { firstName, lastName, country, phone } = req.body;
 
+    const updateFields = {};
+    if (sanitizeString(firstName) !== undefined) updateFields.firstName = String(firstName).trim();
+    if (sanitizeString(lastName) !== undefined) updateFields.lastName = String(lastName).trim();
+    if (sanitizeString(country) !== undefined) updateFields.country = String(country).trim();
+    if (sanitizeString(phone) !== undefined) updateFields.phone = String(phone).trim();
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { firstName, lastName, country, phone },
+      updateFields,
       { new: true, runValidators: true }
     )
       .select('-password -emailVerificationToken')

@@ -2,6 +2,10 @@ const User = require('../models/User');
 const Membership = require('../models/Membership');
 const Promotion = require('../models/Promotion');
 const Payment = require('../models/Payment');
+const { sanitizeString, sanitizeEnum } = require('../utils/sanitize');
+
+const ALLOWED_TIERS = ['free', 'basic', 'advanced', 'premium'];
+const ALLOWED_USER_STATUSES = ['active', 'inactive'];
 
 const getStats = async (req, res) => {
   try {
@@ -57,12 +61,13 @@ const getMembers = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const query = { role: 'user' };
-    if (req.query.status === 'active') query.isActive = true;
-    if (req.query.status === 'inactive') query.isActive = false;
+    const safeStatus = sanitizeEnum(req.query.status, ALLOWED_USER_STATUSES);
+    if (safeStatus === 'active') query.isActive = true;
+    if (safeStatus === 'inactive') query.isActive = false;
 
-    let membershipFilter = {};
-    if (req.query.tier) {
-      const membershipIds = await Membership.find({ tier: req.query.tier, isActive: true }).distinct('user');
+    const safeTier = sanitizeEnum(req.query.tier, ALLOWED_TIERS);
+    if (safeTier) {
+      const membershipIds = await Membership.find({ tier: safeTier, isActive: true }).distinct('user');
       query._id = { $in: membershipIds };
     }
 
@@ -228,7 +233,19 @@ const managePromotions = async (req, res) => {
     }
 
     if (method === 'PUT') {
-      const promo = await Promotion.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+      const { code, description, discountPercentage, discountAmount, validFrom, validTo, maxUses, tierRestrictions, isActive } =
+        req.body;
+      const updateFields = {};
+      if (code !== undefined) updateFields.code = String(code).toUpperCase().trim();
+      if (description !== undefined) updateFields.description = String(description).trim();
+      if (discountPercentage !== undefined) updateFields.discountPercentage = Number(discountPercentage);
+      if (discountAmount !== undefined) updateFields.discountAmount = Number(discountAmount);
+      if (validFrom !== undefined) updateFields.validFrom = validFrom;
+      if (validTo !== undefined) updateFields.validTo = validTo;
+      if (maxUses !== undefined) updateFields.maxUses = Number(maxUses);
+      if (Array.isArray(tierRestrictions)) updateFields.tierRestrictions = tierRestrictions.filter((t) => ALLOWED_TIERS.includes(t));
+      if (isActive !== undefined) updateFields.isActive = Boolean(isActive);
+      const promo = await Promotion.findByIdAndUpdate(id, updateFields, { new: true, runValidators: true });
       if (!promo) return res.status(404).json({ error: 'Promotion not found' });
       return res.json({ message: 'Promotion updated', promotion: promo });
     }
@@ -257,8 +274,11 @@ const sendCampaignEmail = async (req, res) => {
     let query = { role: 'user', isActive: true, isEmailVerified: true };
 
     if (!targetAll && targetTier) {
-      const membershipIds = await Membership.find({ tier: targetTier, isActive: true }).distinct('user');
-      query._id = { $in: membershipIds };
+      const safeTier = sanitizeEnum(targetTier, ALLOWED_TIERS);
+      if (safeTier) {
+        const membershipIds = await Membership.find({ tier: safeTier, isActive: true }).distinct('user');
+        query._id = { $in: membershipIds };
+      }
     }
 
     const users = await User.find(query).select('email firstName');

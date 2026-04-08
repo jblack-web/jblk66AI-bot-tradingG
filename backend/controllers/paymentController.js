@@ -1,6 +1,10 @@
 const Payment = require('../models/Payment');
 const User = require('../models/User');
 const { v4: uuidv4 } = require('uuid');
+const { sanitizeString, sanitizeEnum } = require('../utils/sanitize');
+
+const ALLOWED_PAYMENT_TYPES = ['deposit', 'withdrawal', 'mining_reward', 'referral_bonus', 'upgrade'];
+const ALLOWED_PAYMENT_STATUSES = ['pending', 'processing', 'completed', 'failed', 'cancelled', 'rejected'];
 
 const generateReference = () => `TXN-${uuidv4().replace(/-/g, '').slice(0, 16).toUpperCase()}`;
 
@@ -47,12 +51,16 @@ const completeDeposit = async (req, res) => {
   try {
     const { reference } = req.body;
 
-    if (!reference) {
+    if (!reference || typeof reference !== 'string') {
       return res.status(400).json({ error: 'Transaction reference is required' });
+    }
+    const safeReference = sanitizeString(reference);
+    if (!safeReference) {
+      return res.status(400).json({ error: 'Invalid transaction reference' });
     }
 
     const payment = await Payment.findOne({
-      reference,
+      reference: safeReference,
       user: req.user._id,
       type: 'deposit',
       status: 'pending',
@@ -136,8 +144,10 @@ const getTransactionHistory = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const query = { user: req.user._id };
-    if (req.query.type) query.type = req.query.type;
-    if (req.query.status) query.status = req.query.status;
+    const safeType = sanitizeEnum(req.query.type, ALLOWED_PAYMENT_TYPES);
+    const safeStatus = sanitizeEnum(req.query.status, ALLOWED_PAYMENT_STATUSES);
+    if (safeType) query.type = safeType;
+    if (safeStatus) query.status = safeStatus;
 
     const [payments, total] = await Promise.all([
       Payment.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
