@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
+const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./src/routes/auth');
 const adminRoutes = require('./src/routes/admins');
@@ -18,12 +19,27 @@ const profileRoutes = require('./src/routes/profile');
 const app = express();
 
 app.use(helmet());
+
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+  : [];
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
     credentials: true,
   })
 );
+
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  message: { message: 'Too many requests. Please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', globalLimiter);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

@@ -27,26 +27,36 @@ router.get('/settings', adminAuth, adminRole(['SuperAdmin']), (req, res) => {
 
 router.put('/settings', adminAuth, adminRole(['SuperAdmin']), async (req, res) => {
   try {
-    const allowed = [
-      'maxFailedLoginAttempts',
-      'lockDurationMinutes',
-      'sessionTimeoutMinutes',
-      'passwordMinLength',
-      'passwordRequireUppercase',
-      'passwordRequireNumbers',
-      'passwordRequireSymbols',
-      'passwordExpiryDays',
-      'twoFARequired',
-      'ipWhitelistEnabled',
-      'allowedIPs',
-    ];
+    const validators = {
+      maxFailedLoginAttempts: (v) => Number.isInteger(v) && v >= 1 && v <= 20,
+      lockDurationMinutes: (v) => Number.isInteger(v) && v >= 1 && v <= 1440,
+      sessionTimeoutMinutes: (v) => Number.isInteger(v) && v >= 1 && v <= 1440,
+      passwordMinLength: (v) => Number.isInteger(v) && v >= 8 && v <= 128,
+      passwordRequireUppercase: (v) => typeof v === 'boolean',
+      passwordRequireNumbers: (v) => typeof v === 'boolean',
+      passwordRequireSymbols: (v) => typeof v === 'boolean',
+      passwordExpiryDays: (v) => Number.isInteger(v) && v >= 1 && v <= 365,
+      twoFARequired: (v) => typeof v === 'boolean',
+      ipWhitelistEnabled: (v) => typeof v === 'boolean',
+      allowedIPs: (v) => Array.isArray(v) && v.every((ip) => typeof ip === 'string'),
+    };
 
     const oldValue = { ...securitySettings };
-    allowed.forEach((key) => {
+    const errors = [];
+
+    Object.keys(validators).forEach((key) => {
       if (req.body[key] !== undefined) {
-        securitySettings[key] = req.body[key];
+        if (!validators[key](req.body[key])) {
+          errors.push(`Invalid value for ${key}`);
+        } else {
+          securitySettings[key] = req.body[key];
+        }
       }
     });
+
+    if (errors.length > 0) {
+      return res.status(400).json({ message: 'Validation errors', errors });
+    }
 
     await createAuditLog({
       adminId: req.admin._id,

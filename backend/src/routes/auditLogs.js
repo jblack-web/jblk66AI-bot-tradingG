@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 
 const AuditLog = require('../models/AuditLog');
 const adminAuth = require('../middleware/adminAuth');
@@ -6,7 +7,14 @@ const { adminRole } = require('../middleware/adminRole');
 
 const router = express.Router();
 
-router.use(adminAuth, adminRole(['SuperAdmin']));
+const ALLOWED_RESOURCES = ['pools', 'users', 'payouts', 'admins', 'settings', 'auth', 'security', 'profile', 'analytics'];
+const ALLOWED_STATUSES = ['Success', 'Failure'];
+
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, message: { message: 'Too many requests.' } });
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+router.use(adminAuth, adminRole(['SuperAdmin']), apiLimiter);
 
 router.get('/', async (req, res) => {
   try {
@@ -15,10 +23,10 @@ router.get('/', async (req, res) => {
     const skip = (page - 1) * limit;
 
     const filter = {};
-    if (req.query.admin) filter.adminId = req.query.admin;
-    if (req.query.action) filter.action = new RegExp(req.query.action, 'i');
-    if (req.query.resource) filter.resource = req.query.resource;
-    if (req.query.status) filter.status = req.query.status;
+    if (req.query.admin) filter.adminId = String(req.query.admin);
+    if (req.query.action) filter.action = new RegExp(escapeRegex(String(req.query.action)), 'i');
+    if (req.query.resource && ALLOWED_RESOURCES.includes(req.query.resource)) filter.resource = req.query.resource;
+    if (req.query.status && ALLOWED_STATUSES.includes(req.query.status)) filter.status = req.query.status;
     if (req.query.startDate || req.query.endDate) {
       filter.timestamp = {};
       if (req.query.startDate) filter.timestamp.$gte = new Date(req.query.startDate);
@@ -54,10 +62,10 @@ router.get('/:id', async (req, res) => {
 router.post('/export', async (req, res) => {
   try {
     const filter = {};
-    if (req.body.admin) filter.adminId = req.body.admin;
-    if (req.body.action) filter.action = new RegExp(req.body.action, 'i');
-    if (req.body.resource) filter.resource = req.body.resource;
-    if (req.body.status) filter.status = req.body.status;
+    if (req.body.admin) filter.adminId = String(req.body.admin);
+    if (req.body.action) filter.action = new RegExp(escapeRegex(String(req.body.action)), 'i');
+    if (req.body.resource && ALLOWED_RESOURCES.includes(req.body.resource)) filter.resource = req.body.resource;
+    if (req.body.status && ALLOWED_STATUSES.includes(req.body.status)) filter.status = req.body.status;
     if (req.body.startDate || req.body.endDate) {
       filter.timestamp = {};
       if (req.body.startDate) filter.timestamp.$gte = new Date(req.body.startDate);
@@ -88,3 +96,4 @@ router.post('/export', async (req, res) => {
 });
 
 module.exports = router;
+
