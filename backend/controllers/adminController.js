@@ -203,6 +203,13 @@ const managePromotions = async (req, res) => {
     const { method } = req;
     const { id } = req.params;
 
+    // Validate ObjectId for routes that require it
+    if ((method === 'PUT' || method === 'DELETE') && id) {
+      if (!/^[a-f\d]{24}$/i.test(id)) {
+        return res.status(400).json({ error: 'Invalid promotion ID' });
+      }
+    }
+
     if (method === 'GET') {
       const promos = await Promotion.find().populate('createdBy', 'email').sort({ createdAt: -1 });
       return res.json({ promotions: promos });
