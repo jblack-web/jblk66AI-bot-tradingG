@@ -93,7 +93,19 @@ exports.updatePool = async (req, res) => {
     if (!poolId) {
       return res.status(400).json({ success: false, message: 'Invalid pool ID' });
     }
-    const pool = await StakingPool.findByIdAndUpdate(poolId, req.body, {
+    // Whitelist only the fields admins are allowed to update
+    const allowedFields = [
+      'name', 'description', 'blockchain', 'minimumStake', 'maximumStake',
+      'annualYieldMin', 'annualYieldMax', 'lockPeriodOptions', 'fee',
+      'riskLevel', 'capacity', 'tier', 'isActive', 'isLiquid', 'earlyWithdrawalFee',
+    ];
+    const updates = {};
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        updates[field] = req.body[field];
+      }
+    }
+    const pool = await StakingPool.findByIdAndUpdate(poolId, updates, {
       new: true,
       runValidators: true,
     });
@@ -110,35 +122,38 @@ exports.updatePool = async (req, res) => {
 
 exports.getStakers = async (req, res) => {
   try {
-    const { page = 1, limit = 20, status, poolId: poolIdRaw } = req.query;
-    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
 
-    const match = {};
-    // Whitelist allowed status values
+    // Build a clean, non-tainted query filter using only validated values
+    const filter = {};
     const allowedStatuses = ['Active', 'Completed', 'Withdrawn', 'Paused'];
-    if (status && allowedStatuses.includes(status)) match.status = status;
-    if (poolIdRaw) {
-      const poolId = toObjectId(poolIdRaw);
+    if (req.query.status && allowedStatuses.includes(req.query.status)) {
+      filter.status = req.query.status;
+    }
+    if (req.query.poolId) {
+      const poolId = toObjectId(req.query.poolId);
       if (!poolId) {
         return res.status(400).json({ success: false, message: 'Invalid pool ID' });
       }
-      match.poolId = poolId;
+      filter.poolId = poolId;
     }
 
     const [stakes, total] = await Promise.all([
-      UserStake.find(match)
+      UserStake.find(filter)
         .populate('userId', 'username email role createdAt')
         .populate('poolId', 'name tier')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit)),
-      UserStake.countDocuments(match),
+        .limit(limitNum),
+      UserStake.countDocuments(filter),
     ]);
 
     res.json({
       success: true,
       data: stakes,
-      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) },
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
