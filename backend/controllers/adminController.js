@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Membership = require('../models/Membership');
 const Promotion = require('../models/Promotion');
@@ -6,6 +7,19 @@ const { sanitizeString, sanitizeEnum } = require('../utils/sanitize');
 
 const ALLOWED_TIERS = ['free', 'basic', 'advanced', 'premium'];
 const ALLOWED_USER_STATUSES = ['active', 'inactive'];
+
+/**
+ * Parse and validate a MongoDB ObjectId from a string.
+ * Returns the ObjectId or null if invalid.
+ */
+const parseObjectId = (value) => {
+  if (!value || typeof value !== 'string' || !/^[a-f\d]{24}$/i.test(value)) return null;
+  try {
+    return new mongoose.Types.ObjectId(value);
+  } catch (_) {
+    return null;
+  }
+};
 
 const getStats = async (req, res) => {
   try {
@@ -204,8 +218,10 @@ const managePromotions = async (req, res) => {
     const { id } = req.params;
 
     // Validate ObjectId for routes that require it
-    if ((method === 'PUT' || method === 'DELETE') && id) {
-      if (!/^[a-f\d]{24}$/i.test(id)) {
+    let safeId = null;
+    if (method === 'PUT' || method === 'DELETE') {
+      safeId = parseObjectId(id);
+      if (!safeId) {
         return res.status(400).json({ error: 'Invalid promotion ID' });
       }
     }
@@ -252,13 +268,13 @@ const managePromotions = async (req, res) => {
       if (maxUses !== undefined) updateFields.maxUses = Number(maxUses);
       if (Array.isArray(tierRestrictions)) updateFields.tierRestrictions = tierRestrictions.filter((t) => ALLOWED_TIERS.includes(t));
       if (isActive !== undefined) updateFields.isActive = Boolean(isActive);
-      const promo = await Promotion.findByIdAndUpdate(id, updateFields, { new: true, runValidators: true });
+      const promo = await Promotion.findByIdAndUpdate(safeId, updateFields, { new: true, runValidators: true });
       if (!promo) return res.status(404).json({ error: 'Promotion not found' });
       return res.json({ message: 'Promotion updated', promotion: promo });
     }
 
     if (method === 'DELETE') {
-      const promo = await Promotion.findByIdAndDelete(id);
+      const promo = await Promotion.findByIdAndDelete(safeId);
       if (!promo) return res.status(404).json({ error: 'Promotion not found' });
       return res.json({ message: 'Promotion deleted' });
     }
