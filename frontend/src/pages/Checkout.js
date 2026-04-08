@@ -30,7 +30,7 @@ export default function Checkout() {
     setPlacing(true);
     setError('');
     try {
-      const res = await api.checkout({ shippingAddress: address, paymentMethod });
+      const res = await api.createOrder({ shippingAddress: address, paymentMethod });
       navigate(`/orders/${res.orderId || res.order?._id || 'success'}`);
     } catch (err) {
       setError(err.message || 'Checkout failed. Please try again.');
