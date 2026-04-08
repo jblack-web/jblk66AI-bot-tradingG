@@ -41,11 +41,15 @@ const getInsights = async (req, res) => {
   try {
     const { page = 1, limit = 20, type, direction, asset, minConfidence } = req.query;
     const { skip, limit: lim } = paginate(page, limit);
+
+    const VALID_TYPES = ['trend', 'sentiment', 'prediction', 'technical', 'risk', 'opportunity', 'onchain', 'macro', 'correlation', 'anomaly'];
+    const VALID_DIRECTIONS = ['bullish', 'bearish', 'neutral'];
+
     const filter = { expiresAt: { $gt: new Date() } };
-    if (type) filter.insightType = type;
-    if (direction) filter.direction = direction;
-    if (asset) filter.asset = asset.toUpperCase();
-    if (minConfidence) filter.confidence = { $gte: parseInt(minConfidence) };
+    if (type && VALID_TYPES.includes(type)) filter.insightType = type;
+    if (direction && VALID_DIRECTIONS.includes(direction)) filter.direction = direction;
+    if (asset) filter.asset = asset.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (minConfidence) filter.confidence = { $gte: Math.min(100, Math.max(0, parseInt(minConfidence))) };
 
     const [insights, total] = await Promise.all([
       AIMarketInsight.find(filter).sort({ generatedAt: -1 }).skip(skip).limit(lim),

@@ -10,10 +10,13 @@ const getTradeHistory = async (req, res) => {
     const { page = 1, limit = 20, type, status, asset } = req.query;
     const { skip, limit: lim } = paginate(page, limit);
 
+    const VALID_TYPES = ['spot', 'options', 'futures', 'gold'];
+    const VALID_STATUSES = ['open', 'closed', 'cancelled'];
+
     const filter = { userId: req.user._id };
-    if (type) filter.type = type;
-    if (status) filter.status = status;
-    if (asset) filter.asset = asset.toUpperCase();
+    if (type && VALID_TYPES.includes(type)) filter.type = type;
+    if (status && VALID_STATUSES.includes(status)) filter.status = status;
+    if (asset) filter.asset = asset.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     const [trades, total] = await Promise.all([
       Trade.find(filter).sort({ openedAt: -1 }).skip(skip).limit(lim),

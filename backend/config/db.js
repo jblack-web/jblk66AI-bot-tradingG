@@ -16,8 +16,6 @@ const connectDB = async (retries = 0) => {
   try {
     const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/jblk66ai';
     const conn = await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000
     });

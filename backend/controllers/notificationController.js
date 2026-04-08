@@ -9,9 +9,10 @@ const getUserNotifications = async (req, res) => {
   try {
     const { page = 1, limit = 20, isRead, type } = req.query;
     const { skip, limit: lim } = paginate(page, limit);
+    const VALID_TYPES = ['trade', 'deposit', 'withdrawal', 'alert', 'system', 'promo', 'referral', 'subscription', 'account_manager'];
     const filter = { userId: req.user._id };
     if (isRead !== undefined) filter.isRead = isRead === 'true';
-    if (type) filter.type = type;
+    if (type && VALID_TYPES.includes(type)) filter.type = type;
     const [notifications, total, unreadCount] = await Promise.all([
       Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(lim),
       Notification.countDocuments(filter),

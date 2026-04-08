@@ -128,8 +128,9 @@ const getDepositHistory = async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query;
     const { skip, limit: lim } = paginate(page, limit);
+    const VALID_STATUSES = ['pending', 'completed', 'failed', 'cancelled'];
     const filter = { userId: req.user._id };
-    if (status) filter.status = status;
+    if (status && VALID_STATUSES.includes(status)) filter.status = status;
     const [deposits, total] = await Promise.all([
       DepositTransaction.find(filter).sort({ createdAt: -1 }).skip(skip).limit(lim),
       DepositTransaction.countDocuments(filter)

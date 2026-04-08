@@ -1,6 +1,7 @@
 'use strict';
 
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 const formatCurrency = (amount, currency = 'USD', decimals = 2) => {
   return new Intl.NumberFormat('en-US', {
@@ -22,18 +23,23 @@ const generateReferralCode = (length = 10) => {
 
 const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
+  // Strip HTML tags and dangerous characters
   return input
-    .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+=/gi, '')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
     .trim();
 };
 
+// Use crypto.randomInt for cryptographically secure OTP generation
 const generateOTP = (length = 6) => {
   const digits = '0123456789';
   let otp = '';
   for (let i = 0; i < length; i++) {
-    otp += digits[Math.floor(Math.random() * digits.length)];
+    otp += digits[crypto.randomInt(0, digits.length)];
   }
   return otp;
 };
@@ -71,7 +77,8 @@ const paginate = (page = 1, limit = 20) => {
 };
 
 const generatePasswordResetToken = () => {
-  return uuidv4().replace(/-/g, '') + Date.now().toString(36);
+  // Use crypto.randomBytes for secure token generation
+  return crypto.randomBytes(32).toString('hex');
 };
 
 const isValidObjectId = (id) => {

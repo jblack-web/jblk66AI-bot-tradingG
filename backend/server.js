@@ -65,10 +65,10 @@ const logger = winston.createLogger({
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Socket.io
+// Initialize Socket.io - restrict origin in production
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || '*',
+    origin: process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? false : '*'),
     methods: ['GET', 'POST']
   }
 });
@@ -90,10 +90,16 @@ app.use(
   })
 );
 
-// CORS
+// CORS - restrict origin to CLIENT_URL when set in production
+const corsOrigin = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL
+  : process.env.NODE_ENV === 'production'
+    ? false
+    : '*';
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || '*',
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -209,8 +215,7 @@ app.use((err, req, res, next) => {
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017/jblk66ai',
-      { useNewUrlParser: true, useUnifiedTopology: true }
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/jblk66ai'
     );
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {

@@ -89,8 +89,9 @@ const getWithdrawalHistory = async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query;
     const { skip, limit: lim } = paginate(page, limit);
+    const VALID_STATUSES = ['pending', 'approved', 'rejected', 'completed', 'cancelled'];
     const filter = { userId: req.user._id };
-    if (status) filter.status = status;
+    if (status && VALID_STATUSES.includes(status)) filter.status = status;
     const [withdrawals, total] = await Promise.all([
       WithdrawalTransaction.find(filter).sort({ requestedAt: -1 }).skip(skip).limit(lim),
       WithdrawalTransaction.countDocuments(filter)
