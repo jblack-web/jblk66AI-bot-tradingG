@@ -65,10 +65,10 @@ const logger = winston.createLogger({
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Socket.io - restrict origin in production
+// Initialize Socket.io - restrict origin to known frontend
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? false : '*'),
+    origin: process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? false : ['http://localhost:3000', 'http://localhost:3001']),
     methods: ['GET', 'POST']
   }
 });
@@ -90,16 +90,16 @@ app.use(
   })
 );
 
-// CORS - restrict origin to CLIENT_URL when set in production
-const corsOrigin = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL
-  : process.env.NODE_ENV === 'production'
-    ? false
-    : '*';
+// CORS - use CLIENT_URL when set; in production without it, block all cross-origin; in dev allow localhost only
+const getAllowedOrigins = () => {
+  if (process.env.CLIENT_URL) return process.env.CLIENT_URL;
+  if (process.env.NODE_ENV === 'production') return false;
+  return ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
+};
 
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: getAllowedOrigins(),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true

@@ -24,8 +24,9 @@ const getPriceHistory = async (symbol, points = 50) => {
     );
     return data.map((k) => parseFloat(k[4]));
   } catch {
-    const cached = PRICE_HISTORY_CACHE.get(symbol) || [];
-    return cached.length ? cached : Array.from({ length: points }, (_, i) => 40000 + i * 100);
+    // Return null if price history cannot be fetched - do not use synthetic data
+    // The caller must handle null and skip trading for this asset
+    return null;
   }
 };
 
@@ -34,11 +35,14 @@ const runMomentumStrategy = async (asset, prices) => {
   const rsi = indicators.rsi || 50;
   const macd = indicators.macd || 0;
 
+  // Deterministic confidence based on RSI distance from extremes
   if (rsi < 35 && macd > 0) {
-    return { signal: 'buy', confidence: 70 + Math.random() * 15 };
+    const confidence = Math.min(90, 55 + (35 - rsi) * 2);
+    return { signal: 'buy', confidence };
   }
   if (rsi > 65 && macd < 0) {
-    return { signal: 'sell', confidence: 70 + Math.random() * 15 };
+    const confidence = Math.min(90, 55 + (rsi - 65) * 2);
+    return { signal: 'sell', confidence };
   }
   return { signal: 'hold', confidence: 0 };
 };
@@ -52,21 +56,26 @@ const runMeanReversionStrategy = async (asset, prices) => {
   const deviation = ((current - sma20) / sma20) * 100;
 
   if (deviation < -3) {
-    return { signal: 'buy', confidence: 60 + Math.random() * 20 };
+    const confidence = Math.min(90, 55 + Math.abs(deviation) * 3);
+    return { signal: 'buy', confidence };
   }
   if (deviation > 3) {
-    return { signal: 'sell', confidence: 60 + Math.random() * 20 };
+    const confidence = Math.min(90, 55 + deviation * 3);
+    return { signal: 'sell', confidence };
   }
   return { signal: 'hold', confidence: 0 };
 };
 
 const runTrendFollowingStrategy = async (asset, prices) => {
   const indicators = calculateTechnicalIndicators(prices);
-  if (indicators.trend === 'bullish' && indicators.rsi < 70) {
-    return { signal: 'buy', confidence: 65 + Math.random() * 20 };
+  const rsi = indicators.rsi || 50;
+  if (indicators.trend === 'bullish' && rsi < 70) {
+    const confidence = Math.min(90, 55 + (70 - rsi) * 0.5);
+    return { signal: 'buy', confidence };
   }
-  if (indicators.trend === 'bearish' && indicators.rsi > 30) {
-    return { signal: 'sell', confidence: 65 + Math.random() * 20 };
+  if (indicators.trend === 'bearish' && rsi > 30) {
+    const confidence = Math.min(90, 55 + (rsi - 30) * 0.5);
+    return { signal: 'sell', confidence };
   }
   return { signal: 'hold', confidence: 0 };
 };
@@ -78,8 +87,8 @@ const runAISignalStrategy = async (asset, prices) => {
     (indicators.trend === 'bullish' ? 20 : -20) +
     (indicators.macd > 0 ? 15 : -15);
 
-  if (score > 30) return { signal: 'buy', confidence: 75 + Math.random() * 15 };
-  if (score < -30) return { signal: 'sell', confidence: 75 + Math.random() * 15 };
+  if (score > 30) return { signal: 'buy', confidence: Math.min(90, 60 + score * 0.5) };
+  if (score < -30) return { signal: 'sell', confidence: Math.min(90, 60 + Math.abs(score) * 0.5) };
   return { signal: 'hold', confidence: 0 };
 };
 
@@ -144,6 +153,10 @@ const executeAutomatedTrades = async () => {
           if (schedule.tradesExecutedToday >= schedule.maxDailyTrades) break;
 
           const prices = await getPriceHistory(pair, 50);
+          if (!prices || prices.length < 20) {
+            logger.warn(`Insufficient price history for ${pair}, skipping automated trade`);
+            continue;
+          }
           let signal = { signal: 'hold', confidence: 0 };
 
           switch (schedule.strategy) {

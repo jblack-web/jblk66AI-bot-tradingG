@@ -23,11 +23,11 @@ const generateReferralCode = (length = 10) => {
 
 const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
-  // Strip HTML tags and dangerous characters
+  // Replace & first to avoid double-encoding other replacements
   return input
+    .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;')
     .replace(/\//g, '&#x2F;')

@@ -101,12 +101,12 @@ const getGoldPrice = async () => {
     const avPrice = await getAlphaVantagePrice('XAUUSD');
     if (avPrice) return avPrice;
 
-    const fallbackPrice = 2000 + (Math.random() - 0.5) * 50;
-    setCachedPrice(cacheKey, fallbackPrice);
-    return fallbackPrice;
+    // All external sources failed - return null rather than fabricated data
+    logger.warn('All gold price sources unavailable');
+    return null;
   } catch (err) {
     logger.error(`Gold price error: ${err.message}`);
-    return 2000;
+    return null;
   }
 };
 
