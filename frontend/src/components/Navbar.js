@@ -9,6 +9,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -67,9 +68,9 @@ export default function Navbar() {
           )}
 
           {isAuthenticated ? (
-            <div style={styles.userMenu}>
-              <span style={styles.username}>👤 {user?.name || user?.email?.split('@')[0] || 'User'}</span>
-              <div style={styles.dropdown}>
+            <div style={styles.userMenu} onClick={() => setUserMenuOpen(o => !o)} onBlur={() => setTimeout(() => setUserMenuOpen(false), 150)} tabIndex={0}>
+              <span style={styles.username}>👤 {user?.name || user?.email?.split('@')[0] || 'User'} ▾</span>
+              <div style={{ ...styles.dropdown, display: userMenuOpen ? 'flex' : 'none' }}>
                 <Link to="/dashboard" style={styles.dropItem}>📊 Dashboard</Link>
                 <Link to="/orders" style={styles.dropItem}>📦 Orders</Link>
                 <Link to="/referrals" style={styles.dropItem}>🔗 Referrals</Link>
@@ -215,7 +216,6 @@ const styles = {
     borderRadius: 8,
     minWidth: 180,
     boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-    display: 'none',
     flexDirection: 'column',
     zIndex: 999,
   },
