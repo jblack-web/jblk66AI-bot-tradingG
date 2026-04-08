@@ -13,10 +13,10 @@ const MOCK_SETTINGS = {
 };
 
 const MOCK_PENDING_WITHDRAWALS = [
-  { _id: 'w1', user: 'john@example.com', currency: 'BTC', amount: '0.05', usdValue: 3250, requestedAt: '2024-01-26 10:30', status: 'pending' },
-  { _id: 'w2', user: 'alice@example.com', currency: 'ETH', amount: '0.5', usdValue: 1875, requestedAt: '2024-01-26 11:15', status: 'pending' },
-  { _id: 'w3', user: 'bob@example.com', currency: 'USDT', amount: '250', usdValue: 250, requestedAt: '2024-01-26 12:00', status: 'pending' },
-  { _id: 'w4', user: 'carol@example.com', currency: 'BTC', amount: '0.02', usdValue: 1300, requestedAt: '2024-01-26 13:45', status: 'pending' },
+  { walletId: 'w1', transaction: { _id: 't1', currency: 'BTC', amount: 0.05, timestamp: '2024-01-26T10:30:00Z', status: 'pending' }, user: { name: 'John Doe', email: 'john@example.com' } },
+  { walletId: 'w2', transaction: { _id: 't2', currency: 'ETH', amount: 0.5, timestamp: '2024-01-26T11:15:00Z', status: 'pending' }, user: { name: 'Alice Smith', email: 'alice@example.com' } },
+  { walletId: 'w3', transaction: { _id: 't3', currency: 'USDT', amount: 250, timestamp: '2024-01-26T12:00:00Z', status: 'pending' }, user: { name: 'Bob Johnson', email: 'bob@example.com' } },
+  { walletId: 'w4', transaction: { _id: 't4', currency: 'BTC', amount: 0.02, timestamp: '2024-01-26T13:45:00Z', status: 'pending' }, user: { name: 'Carol Williams', email: 'carol@example.com' } },
 ];
 
 export default function AdminSettings() {
@@ -74,18 +74,13 @@ export default function AdminSettings() {
     }
   };
 
-  const handleWithdrawal = async (id, action) => {
-    setProcessingId(id);
+  const handleWithdrawal = async (walletId, txId, action) => {
+    const key = `${walletId}-${txId}`;
+    setProcessingId(key);
     try {
-      if (action === 'approve') {
-        await api.approveWithdrawal(id);
-        setPendingWithdrawals(ws => ws.filter(w => w._id !== id));
-        setMsg('✓ Withdrawal approved and processed');
-      } else {
-        await api.rejectWithdrawal(id);
-        setPendingWithdrawals(ws => ws.filter(w => w._id !== id));
-        setMsg('Withdrawal rejected');
-      }
+      await api.processWithdrawal(walletId, txId, action);
+      setPendingWithdrawals(ws => ws.filter(w => !(w.walletId === walletId && w.transaction._id === txId)));
+      setMsg(action === 'approve' ? '✓ Withdrawal approved and processed' : 'Withdrawal rejected');
       setTimeout(() => setMsg(''), 3000);
     } catch (err) {
       setMsg('Error: ' + (err.message || 'Action failed'));
@@ -171,7 +166,7 @@ export default function AdminSettings() {
               </span>
               {pendingWithdrawals.length > 0 && (
                 <span style={{ fontSize: '0.85rem', color: 'var(--warning)' }}>
-                  ${pendingWithdrawals.reduce((s, w) => s + (w.usdValue || 0), 0).toLocaleString()} total pending
+                  ${pendingWithdrawals.reduce((s, w) => s + (w.transaction?.amount || 0), 0).toLocaleString()} total pending
                 </span>
               )}
             </div>
@@ -188,25 +183,28 @@ export default function AdminSettings() {
                     <tr><th>User</th><th>Amount</th><th>Currency</th><th>USD Value</th><th>Requested</th><th>Actions</th></tr>
                   </thead>
                   <tbody>
-                    {pendingWithdrawals.map(w => (
-                      <tr key={w._id}>
-                        <td style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>{w.user}</td>
-                        <td style={{ fontWeight: 700 }}>{w.amount}</td>
-                        <td><span className="badge badge-muted">{w.currency}</span></td>
-                        <td style={{ fontWeight: 700, color: 'var(--text-muted)' }}>${w.usdValue?.toLocaleString()}</td>
-                        <td style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>{w.requestedAt}</td>
+                    {pendingWithdrawals.map(w => {
+                      const key = `${w.walletId}-${w.transaction?._id}`;
+                      return (
+                      <tr key={key}>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>{w.user?.email || w.user?.name}</td>
+                        <td style={{ fontWeight: 700 }}>{w.transaction?.amount}</td>
+                        <td><span className="badge badge-muted">{w.transaction?.currency}</span></td>
+                        <td style={{ fontWeight: 700, color: 'var(--text-muted)' }}>—</td>
+                        <td style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>{w.transaction?.timestamp ? new Date(w.transaction.timestamp).toLocaleString() : ''}</td>
                         <td>
                           <div className="flex" style={{ gap: '0.4rem' }}>
-                            <button className="btn btn-success btn-sm" onClick={() => handleWithdrawal(w._id, 'approve')} disabled={processingId === w._id}>
-                              {processingId === w._id ? '...' : '✓ Approve'}
+                            <button className="btn btn-success btn-sm" onClick={() => handleWithdrawal(w.walletId, w.transaction._id, 'approve')} disabled={processingId === key}>
+                              {processingId === key ? '...' : '✓ Approve'}
                             </button>
-                            <button className="btn btn-danger btn-sm" onClick={() => handleWithdrawal(w._id, 'reject')} disabled={processingId === w._id}>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleWithdrawal(w.walletId, w.transaction._id, 'reject')} disabled={processingId === key}>
                               ✕ Reject
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

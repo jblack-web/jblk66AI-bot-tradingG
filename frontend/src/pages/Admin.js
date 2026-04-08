@@ -29,11 +29,13 @@ export default function Admin() {
 
   const load = () => {
     Promise.all([
-      api.getStats().catch(() => MOCK_STATS),
-      api.getActivity().catch(() => ({ activity: MOCK_ACTIVITY })),
-    ]).then(([s, a]) => {
-      setStats(s.stats || s);
-      setActivity(a.activity || MOCK_ACTIVITY);
+      api.getDashboard().catch(() => MOCK_STATS),
+      api.getWithdrawMode().catch(() => ({ withdrawMode: 'manual' })),
+    ]).then(([s, wm]) => {
+      const statsData = s.stats || s;
+      statsData.withdrawMode = wm.withdrawMode || 'manual';
+      setStats(statsData);
+      setActivity(MOCK_ACTIVITY);
     }).finally(() => setLoading(false));
   };
 

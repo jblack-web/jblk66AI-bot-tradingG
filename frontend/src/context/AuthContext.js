@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
   const fetchMe = useCallback(async (tok) => {
     if (!tok) { setLoading(false); return; }
     try {
-      const res = await fetch('/api/auth/me', {
+      const res = await fetch('/api/auth/profile', {
         headers: { Authorization: `Bearer ${tok}` },
       });
       if (res.ok) {

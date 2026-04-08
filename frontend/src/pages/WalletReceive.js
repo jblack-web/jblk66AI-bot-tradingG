@@ -56,8 +56,11 @@ export default function WalletReceive() {
 
   useEffect(() => {
     setLoading(true);
-    api.getAddress(currency)
-      .then(d => setAddress(d.address || generateAddress(currency)))
+    api.getReceiveInfo()
+      .then(d => {
+        const addrs = d.depositAddresses || {};
+        setAddress(addrs[currency] || generateAddress(currency));
+      })
       .catch(() => setAddress(generateAddress(currency)))
       .finally(() => setLoading(false));
   }, [currency]);

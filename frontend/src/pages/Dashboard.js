@@ -20,12 +20,19 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      wallet.getBalances().catch(() => ({ balances: MOCK_BALANCES })),
+      wallet.getWallet().catch(() => ({ wallet: null })),
       mining.getContracts().catch(() => ({ contracts: [] })),
       marketplace.getOrders().catch(() => ({ orders: [] })),
       mining.getEarnings().catch(() => ({ today: 0.00012, month: 0.00341 })),
-    ]).then(([b, c, o, e]) => {
-      setBalances(b.balances || MOCK_BALANCES);
+    ]).then(([w, c, o, e]) => {
+      if (w.wallet?.balances) {
+        const bal = Object.entries(w.wallet.balances).map(([code, amount]) => ({
+          currency: code, amount: String(amount), usdValue: 0,
+        }));
+        setBalances(bal.length ? bal : MOCK_BALANCES);
+      } else {
+        setBalances(MOCK_BALANCES);
+      }
       setContracts(c.contracts || []);
       setOrders((o.orders || []).slice(0, 5));
       setEarnings(e);

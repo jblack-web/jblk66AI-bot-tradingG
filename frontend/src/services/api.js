@@ -21,15 +21,15 @@ async function apiRequest(method, path, data = null) {
 export const auth = {
   login: (email, password) => apiRequest('POST', '/auth/login', { email, password }),
   register: (data) => apiRequest('POST', '/auth/register', data),
-  me: () => apiRequest('GET', '/auth/me'),
-  logout: () => apiRequest('POST', '/auth/logout'),
+  me: () => apiRequest('GET', '/auth/profile'),
 };
 
 export const wallet = {
-  getBalances: () => apiRequest('GET', '/wallet/balances'),
+  getWallet: () => apiRequest('GET', '/wallet'),
+  getBalances: () => apiRequest('GET', '/wallet/balance'),
   getTransactions: (params = '') => apiRequest('GET', `/wallet/transactions${params}`),
   send: (data) => apiRequest('POST', '/wallet/send', data),
-  getAddress: (currency) => apiRequest('GET', `/wallet/address/${currency}`),
+  getReceiveInfo: () => apiRequest('GET', '/wallet/receive'),
   deposit: (data) => apiRequest('POST', '/wallet/deposit', data),
   withdraw: (data) => apiRequest('POST', '/wallet/withdraw', data),
 };
@@ -38,14 +38,18 @@ export const marketplace = {
   getProducts: (params = '') => apiRequest('GET', `/marketplace/products${params}`),
   getProduct: (id) => apiRequest('GET', `/marketplace/products/${id}`),
   getCategories: () => apiRequest('GET', '/marketplace/categories'),
-  addToCart: (data) => apiRequest('POST', '/marketplace/cart', data),
+  getFeatured: () => apiRequest('GET', '/marketplace/featured'),
+  addToCart: (data) => apiRequest('POST', '/marketplace/cart/add', data),
   getCart: () => apiRequest('GET', '/marketplace/cart'),
-  updateCart: (id, data) => apiRequest('PUT', `/marketplace/cart/${id}`, data),
-  removeFromCart: (id) => apiRequest('DELETE', `/marketplace/cart/${id}`),
-  checkout: (data) => apiRequest('POST', '/marketplace/checkout', data),
-  applyCoupon: (code) => apiRequest('POST', '/marketplace/coupon', { code }),
+  updateCart: (itemId, data) => apiRequest('PUT', `/marketplace/cart/items/${itemId}`, data),
+  removeFromCart: (itemId) => apiRequest('DELETE', `/marketplace/cart/items/${itemId}`),
+  clearCart: () => apiRequest('DELETE', '/marketplace/cart'),
+  createOrder: (data) => apiRequest('POST', '/marketplace/orders', data),
+  applyCoupon: (code) => apiRequest('POST', '/marketplace/cart/coupon', { code }),
   getOrders: () => apiRequest('GET', '/marketplace/orders'),
   getOrder: (id) => apiRequest('GET', `/marketplace/orders/${id}`),
+  cancelOrder: (id) => apiRequest('POST', `/marketplace/orders/${id}/cancel`),
+  trackOrder: (id) => apiRequest('GET', `/marketplace/orders/${id}/track`),
 };
 
 export const mining = {
@@ -54,28 +58,34 @@ export const mining = {
   rentRig: (data) => apiRequest('POST', '/mining/rent', data),
   getContracts: () => apiRequest('GET', '/mining/contracts'),
   getContract: (id) => apiRequest('GET', `/mining/contracts/${id}`),
+  pauseContract: (id) => apiRequest('PUT', `/mining/contracts/${id}/pause`),
+  resumeContract: (id) => apiRequest('PUT', `/mining/contracts/${id}/resume`),
+  cancelContract: (id) => apiRequest('DELETE', `/mining/contracts/${id}`),
+  getDashboard: () => apiRequest('GET', '/mining/dashboard'),
   getEarnings: () => apiRequest('GET', '/mining/earnings'),
-  getStats: () => apiRequest('GET', '/mining/stats'),
+  calculate: (data) => apiRequest('POST', '/mining/calculate', data),
+  updatePool: (id, pool) => apiRequest('PUT', `/mining/contracts/${id}/pool`, { pool }),
 };
 
 export const admin = {
-  getStats: () => apiRequest('GET', '/admin/stats'),
+  getDashboard: () => apiRequest('GET', '/admin/dashboard'),
   getUsers: (params = '') => apiRequest('GET', `/admin/users${params}`),
+  getUser: (id) => apiRequest('GET', `/admin/users/${id}`),
   updateUser: (id, data) => apiRequest('PUT', `/admin/users/${id}`, data),
-  getMiningRigs: () => apiRequest('GET', '/admin/mining/rigs'),
-  createRig: (data) => apiRequest('POST', '/admin/mining/rigs', data),
-  updateRig: (id, data) => apiRequest('PUT', `/admin/mining/rigs/${id}`, data),
-  getPendingProducts: () => apiRequest('GET', '/admin/marketplace/pending'),
-  approveProduct: (id) => apiRequest('POST', `/admin/marketplace/products/${id}/approve`),
-  rejectProduct: (id) => apiRequest('POST', `/admin/marketplace/products/${id}/reject`),
+  suspendUser: (id) => apiRequest('POST', `/admin/users/${id}/suspend`),
+  getMiningRigs: () => apiRequest('GET', '/admin/rigs'),
+  createRig: (data) => apiRequest('POST', '/admin/rigs', data),
+  updateRig: (id, data) => apiRequest('PUT', `/admin/rigs/${id}`, data),
+  getMiningStats: () => apiRequest('GET', '/admin/mining-stats'),
+  getMarketplaceStats: () => apiRequest('GET', '/admin/marketplace-stats'),
   getSettings: () => apiRequest('GET', '/admin/settings'),
   updateSettings: (data) => apiRequest('PUT', '/admin/settings', data),
-  getWithdrawMode: () => apiRequest('GET', '/admin/settings/withdraw-mode'),
-  setWithdrawMode: (mode) => apiRequest('POST', '/admin/settings/withdraw-mode', { mode }),
+  getWithdrawMode: () => apiRequest('GET', '/admin/withdraw-mode'),
+  setWithdrawMode: (mode) => apiRequest('PUT', '/admin/withdraw-mode', { withdrawMode: mode }),
   getPendingWithdrawals: () => apiRequest('GET', '/admin/withdrawals/pending'),
-  approveWithdrawal: (id) => apiRequest('POST', `/admin/withdrawals/${id}/approve`),
-  rejectWithdrawal: (id) => apiRequest('POST', `/admin/withdrawals/${id}/reject`),
-  getActivity: () => apiRequest('GET', '/admin/activity'),
+  processWithdrawal: (walletId, txId, action, txHash) =>
+    apiRequest('PUT', `/admin/withdrawals/${walletId}/${txId}/process`, { action, txHash }),
+  getRevenue: () => apiRequest('GET', '/admin/revenue'),
 };
 
 export const seller = {
@@ -90,7 +100,7 @@ export const seller = {
 };
 
 export const referral = {
-  getStats: () => apiRequest('GET', '/referrals/stats'),
-  getReferrals: () => apiRequest('GET', '/referrals'),
-  getLink: () => apiRequest('GET', '/referrals/link'),
+  getStats: () => apiRequest('GET', '/referral/stats'),
+  getReferrals: () => apiRequest('GET', '/referral'),
+  getLink: () => apiRequest('GET', '/referral/link'),
 };

@@ -43,10 +43,17 @@ export default function Wallet() {
 
   useEffect(() => {
     Promise.all([
-      api.getBalances().catch(() => ({ balances: MOCK_BALANCES })),
+      api.getWallet().catch(() => ({ wallet: null })),
       api.getTransactions().catch(() => ({ transactions: MOCK_TXS })),
-    ]).then(([b, t]) => {
-      setBalances(b.balances || MOCK_BALANCES);
+    ]).then(([w, t]) => {
+      if (w.wallet?.balances) {
+        const bal = Object.entries(w.wallet.balances).map(([code, amount]) => ({
+          currency: code, amount: String(amount), usdValue: 0,
+        }));
+        setBalances(bal.length ? bal : MOCK_BALANCES);
+      } else {
+        setBalances(MOCK_BALANCES);
+      }
       setTransactions(t.transactions || MOCK_TXS);
     }).finally(() => setLoading(false));
   }, []);
