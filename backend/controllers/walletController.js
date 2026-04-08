@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const Wallet = require('../models/Wallet');
 const User = require('../models/User');
 const PlatformSettings = require('../models/PlatformSettings');
@@ -91,7 +92,7 @@ exports.withdraw = async (req, res) => {
         currency: cur,
         status: 'completed',
         address,
-        txHash: '0x' + Math.random().toString(16).substring(2, 66),
+        txHash: crypto.randomBytes(32).toString('hex'),
         note: 'Auto withdrawal',
       });
       await wallet.save();

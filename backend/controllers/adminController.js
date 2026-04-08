@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const Wallet = require('../models/Wallet');
 const Order = require('../models/Order');
@@ -6,6 +7,9 @@ const MiningContract = require('../models/MiningContract');
 const MiningEarning = require('../models/MiningEarning');
 const Product = require('../models/Product');
 const PlatformSettings = require('../models/PlatformSettings');
+
+// Escape special regex characters from user input to prevent ReDoS
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const getSettings = async () => {
   let s = await PlatformSettings.findOne();
@@ -60,7 +64,7 @@ exports.getUsers = async (req, res) => {
     const filter = {};
     if (role) filter.role = role;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
-    if (search) filter.$or = [{ name: new RegExp(search, 'i') }, { email: new RegExp(search, 'i') }];
+    if (search) filter.$or = [{ name: new RegExp(escapeRegex(search), 'i') }, { email: new RegExp(escapeRegex(search), 'i') }];
 
     const total = await User.countDocuments(filter);
     const users = await User.find(filter)
@@ -177,7 +181,7 @@ exports.processWithdrawal = async (req, res) => {
 
     if (action === 'approve') {
       tx.status = 'completed';
-      tx.txHash = txHash || '0x' + Math.random().toString(16).substring(2, 66);
+      tx.txHash = txHash || crypto.randomBytes(32).toString('hex');
       // Reduce pending balance
       wallet.pendingBalance[tx.currency] = Math.max(0, (wallet.pendingBalance[tx.currency] || 0) - tx.amount);
     } else {

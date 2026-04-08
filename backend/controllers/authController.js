@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Wallet = require('../models/Wallet');
@@ -6,13 +7,15 @@ const Referral = require('../models/Referral');
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
 
+const randomHex = (bytes) => crypto.randomBytes(bytes).toString('hex');
+
 const generateDepositAddresses = () => ({
-  BTC: '1' + Math.random().toString(36).substring(2, 34).toUpperCase(),
-  ETH: '0x' + Math.random().toString(16).substring(2, 42),
-  LTC: 'L' + Math.random().toString(36).substring(2, 34).toUpperCase(),
-  XMR: '4' + Math.random().toString(36).substring(2, 95).toUpperCase(),
-  USDT: '0x' + Math.random().toString(16).substring(2, 42),
-  USDC: '0x' + Math.random().toString(16).substring(2, 42),
+  BTC: '1' + randomHex(16).toUpperCase(),
+  ETH: '0x' + randomHex(20),
+  LTC: 'L' + randomHex(16).toUpperCase(),
+  XMR: '4' + randomHex(32).toUpperCase(),
+  USDT: '0x' + randomHex(20),
+  USDC: '0x' + randomHex(20),
 });
 
 exports.register = async (req, res) => {

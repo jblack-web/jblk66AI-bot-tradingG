@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./routes/auth');
 const walletRoutes = require('./routes/wallet');
@@ -13,12 +14,22 @@ const referralRoutes = require('./routes/referral');
 
 const app = express();
 
+const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: allowedOrigin,
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Global rate limiter: 200 req/15 min per IP
+const globalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
+// Strict limiter for auth endpoints
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { success: false, message: 'Too many requests, please try again later.' } });
+
+app.use('/api', globalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/wallet', walletRoutes);
@@ -42,6 +53,11 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/jblk66ai';
+
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set');
+  process.exit(1);
+}
 
 mongoose
   .connect(MONGO_URI)
