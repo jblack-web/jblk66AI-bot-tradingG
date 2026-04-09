@@ -5,6 +5,7 @@ const {
   createPromoCode, getPromoCodes, updatePromoCode, deletePromoCode,
   createCategory, updateCategory,
   getTierPackages, createTierPackage, updateTierPackage,
+  getManagers,
 } = require('../controllers/adminController');
 
 // Dashboard
@@ -14,6 +15,9 @@ router.get('/dashboard', authMiddleware, adminMiddleware, getDashboard);
 router.get('/users', authMiddleware, adminMiddleware, getUsers);
 router.put('/users/:id', authMiddleware, adminMiddleware, updateUser);
 router.post('/users/:id/credit', authMiddleware, adminMiddleware, creditUser);
+
+// Account Managers
+router.get('/managers', authMiddleware, adminMiddleware, getManagers);
 
 // Promo Codes
 router.get('/promo-codes', authMiddleware, adminMiddleware, getPromoCodes);

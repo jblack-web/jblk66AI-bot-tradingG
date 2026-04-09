@@ -75,6 +75,8 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }
 
+    await User.findByIdAndUpdate(user._id, { lastLoginAt: new Date() });
+
     const token = generateToken(user._id);
 
     res.json({

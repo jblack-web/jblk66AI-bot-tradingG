@@ -6,6 +6,7 @@ const UserTierPackage = require('../models/UserTierPackage');
 const UserSubscription = require('../models/UserSubscription');
 const PromoCode = require('../models/PromoCode');
 const WithdrawalSettings = require('../models/WithdrawalSettings');
+const AccountManager = require('../models/AccountManager');
 
 // GET /api/admin/dashboard
 exports.getDashboard = async (req, res) => {
@@ -72,7 +73,8 @@ exports.getUsers = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(+limit)
-      .select('-password');
+      .select('-password')
+      .populate('accountManagerId', 'displayName');
 
     const total = await User.countDocuments(filter);
 
@@ -86,7 +88,7 @@ exports.getUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const allowedFields = ['isActive', 'role', 'currentTier', 'walletBalance', 'savingsBalance', 'adminNote'];
+    const allowedFields = ['isActive', 'role', 'currentTier', 'walletBalance', 'savingsBalance', 'adminNote', 'accountManagerId'];
     const updates = {};
     allowedFields.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
 
@@ -122,6 +124,18 @@ exports.creditUser = async (req, res) => {
     });
 
     res.json({ success: true, message: `${type || 'wallet'} credited with $${amount}.` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/admin/managers
+exports.getManagers = async (req, res) => {
+  try {
+    const managers = await AccountManager.find({ isActive: true })
+      .populate('user', 'username email')
+      .sort({ displayName: 1 });
+    res.json({ success: true, managers });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -3,6 +3,7 @@ import { adminAPI } from '../utils/api';
 
 export default function UsersPanel() {
   const [users, setUsers] = useState([]);
+  const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
@@ -26,6 +27,16 @@ export default function UsersPanel() {
     }
   };
 
+  const fetchManagers = async () => {
+    try {
+      const res = await adminAPI.getManagers();
+      setManagers(res.data.managers || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => { fetchManagers(); }, []);
   useEffect(() => { fetchUsers(); }, [page, tier]);
 
   const handleSearch = (e) => { e.preventDefault(); fetchUsers(); };
@@ -51,6 +62,19 @@ export default function UsersPanel() {
     } catch (err) {
       setMsg({ type: 'error', text: err.response?.data?.message || 'Credit failed.' });
     }
+  };
+
+  const formatLastLogin = (date) => {
+    if (!date) return <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Never</span>;
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return <span style={{ color: 'var(--accent-green)', fontSize: 11 }}>Just now</span>;
+    if (diffMins < 60) return <span style={{ color: 'var(--accent-green)', fontSize: 11 }}>{diffMins}m ago</span>;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{diffHours}h ago</span>;
+    return <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{d.toLocaleDateString()}</span>;
   };
 
   const tierBadge = (t) => {
@@ -98,6 +122,8 @@ export default function UsersPanel() {
                   <th>Wallet</th>
                   <th>Savings</th>
                   <th>Status</th>
+                  <th>Last Login</th>
+                  <th>Agent</th>
                   <th>Joined</th>
                   <th>Actions</th>
                 </tr>
@@ -135,6 +161,20 @@ export default function UsersPanel() {
                           {u.isActive ? 'Active' : 'Suspended'}
                         </span>
                       </label>
+                    </td>
+                    <td>{formatLastLogin(u.lastLoginAt)}</td>
+                    <td>
+                      <select
+                        className="form-select"
+                        style={{ padding: '4px 8px', fontSize: 12, width: 140 }}
+                        value={u.accountManagerId?._id || u.accountManagerId || ''}
+                        onChange={e => handleUpdate(u._id, 'accountManagerId', e.target.value || null)}
+                      >
+                        <option value="">— None —</option>
+                        {managers.map(m => (
+                          <option key={m._id} value={m._id}>{m.displayName}</option>
+                        ))}
+                      </select>
                     </td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td>

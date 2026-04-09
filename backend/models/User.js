@@ -43,6 +43,9 @@ const userSchema = new mongoose.Schema({
   notificationsEnabled: { type: Boolean, default: true },
   preferredCurrency: { type: String, default: 'USD' },
 
+  // Login tracking
+  lastLoginAt: { type: Date },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 }, { timestamps: true });
