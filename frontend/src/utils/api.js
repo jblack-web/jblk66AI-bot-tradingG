@@ -76,6 +76,7 @@ export const adminAPI = {
   getUsers: (params) => api.get('/admin/users', { params }),
   updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
   creditUser: (id, data) => api.post(`/admin/users/${id}/credit`, data),
+  getManagers: () => api.get('/admin/managers'),
   getPromoCodes: () => api.get('/admin/promo-codes'),
   createPromoCode: (data) => api.post('/admin/promo-codes', data),
   updatePromoCode: (id, data) => api.put(`/admin/promo-codes/${id}`, data),
