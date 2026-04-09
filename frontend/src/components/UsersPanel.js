@@ -11,6 +11,7 @@ export default function UsersPanel() {
   const [page, setPage] = useState(1);
   const [msg, setMsg] = useState(null);
   const [editUser, setEditUser] = useState(null);
+  const [editForm, setEditForm] = useState({});
   const [creditForm, setCreditForm] = useState({ userId: null, amount: '', type: 'wallet', note: '' });
   const [showCreditModal, setShowCreditModal] = useState(false);
 
@@ -45,6 +46,31 @@ export default function UsersPanel() {
     try {
       await adminAPI.updateUser(id, { [field]: value });
       setMsg({ type: 'success', text: `✅ User updated.` });
+      fetchUsers();
+    } catch (err) {
+      setMsg({ type: 'error', text: err.response?.data?.message || 'Update failed.' });
+    }
+  };
+
+  const openEdit = (user) => {
+    setEditUser(user);
+    setEditForm({
+      email: user.email || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      phone: user.phone || '',
+      country: user.country || '',
+      adminNote: user.adminNote || '',
+      role: user.role || 'user',
+    });
+  };
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    try {
+      await adminAPI.updateUser(editUser._id, editForm);
+      setMsg({ type: 'success', text: `✅ User ${editUser.username} updated.` });
+      setEditUser(null);
       fetchUsers();
     } catch (err) {
       setMsg({ type: 'error', text: err.response?.data?.message || 'Update failed.' });
@@ -178,12 +204,20 @@ export default function UsersPanel() {
                     </td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <button
-                        className="btn btn-success btn-sm"
-                        onClick={() => { setCreditForm({ userId: u._id, amount: '', type: 'wallet', note: `Credit for ${u.username}` }); setShowCreditModal(true); }}
-                      >
-                        💰 Credit
-                      </button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => openEdit(u)}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          className="btn btn-success btn-sm"
+                          onClick={() => { setCreditForm({ userId: u._id, amount: '', type: 'wallet', note: `Credit for ${u.username}` }); setShowCreditModal(true); }}
+                        >
+                          💰 Credit
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -234,6 +268,66 @@ export default function UsersPanel() {
               <div style={{ display: 'flex', gap: 12 }}>
                 <button type="submit" className="btn btn-success" style={{ flex: 1, justifyContent: 'center' }}>✅ Credit</button>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowCreditModal(false)} style={{ flex: 1, justifyContent: 'center' }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {editUser && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h2 className="modal-title">✏️ Edit User — {editUser.username}</h2>
+              <button className="modal-close" onClick={() => setEditUser(null)}>✕</button>
+            </div>
+            <form onSubmit={handleEdit}>
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">First Name</label>
+                  <input type="text" className="form-input" placeholder="First name"
+                    value={editForm.firstName} onChange={e => setEditForm({ ...editForm, firstName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Last Name</label>
+                  <input type="text" className="form-input" placeholder="Last name"
+                    value={editForm.lastName} onChange={e => setEditForm({ ...editForm, lastName: e.target.value })} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input type="email" className="form-input" placeholder="user@example.com"
+                  value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">Phone</label>
+                  <input type="text" className="form-input" placeholder="+1 555 000 0000"
+                    value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Country</label>
+                  <input type="text" className="form-input" placeholder="US"
+                    value={editForm.country} onChange={e => setEditForm({ ...editForm, country: e.target.value })} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Role</label>
+                <select className="form-select" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })}>
+                  <option value="user">User</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Admin Note</label>
+                <input type="text" className="form-input" placeholder="Internal note about this user..."
+                  value={editForm.adminNote} onChange={e => setEditForm({ ...editForm, adminNote: e.target.value })} />
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>💾 Save Changes</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditUser(null)} style={{ flex: 1, justifyContent: 'center' }}>Cancel</button>
               </div>
             </form>
           </div>

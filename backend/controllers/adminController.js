@@ -88,9 +88,15 @@ exports.getUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const allowedFields = ['isActive', 'role', 'currentTier', 'walletBalance', 'savingsBalance', 'adminNote', 'accountManagerId'];
+    const allowedFields = ['isActive', 'role', 'currentTier', 'walletBalance', 'savingsBalance', 'adminNote', 'accountManagerId', 'firstName', 'lastName', 'phone', 'country', 'email'];
     const updates = {};
     allowedFields.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
+
+    if (updates.email) {
+      updates.email = updates.email.toLowerCase().trim();
+      const conflict = await User.findOne({ email: updates.email, _id: { $ne: id } });
+      if (conflict) return res.status(400).json({ success: false, message: 'Email is already in use by another account.' });
+    }
 
     const user = await User.findByIdAndUpdate(id, updates, { new: true }).select('-password');
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
