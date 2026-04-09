@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { adminAPI } from '../utils/api';
 
 export default function UsersPanel() {
@@ -15,7 +15,7 @@ export default function UsersPanel() {
   const [creditForm, setCreditForm] = useState({ userId: null, amount: '', type: 'wallet', note: '' });
   const [showCreditModal, setShowCreditModal] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await adminAPI.getUsers({ page, limit: 20, search, tier });
@@ -26,7 +26,7 @@ export default function UsersPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, tier, search]);
 
   const fetchManagers = async () => {
     try {
@@ -38,7 +38,7 @@ export default function UsersPanel() {
   };
 
   useEffect(() => { fetchManagers(); }, []);
-  useEffect(() => { fetchUsers(); }, [page, tier]);
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const handleSearch = (e) => { e.preventDefault(); fetchUsers(); };
 
@@ -101,11 +101,6 @@ export default function UsersPanel() {
     const diffHours = Math.floor(diffMins / 60);
     if (diffHours < 24) return <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{diffHours}h ago</span>;
     return <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{d.toLocaleDateString()}</span>;
-  };
-
-  const tierBadge = (t) => {
-    const map = { premium: 'badge-yellow', advanced: 'badge-purple', basic: 'badge-blue', free: 'badge-gray' };
-    return <span className={`badge ${map[t] || 'badge-gray'}`}>{t || 'free'}</span>;
   };
 
   return (

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import '../styles/App.css';
-import { authAPI } from '../utils/api';
+import './styles/App.css';
+import { authAPI } from './utils/api';
 
 // Pages
-import LoginPage from '../pages/LoginPage';
-import AdminDashboard from '../pages/AdminDashboard';
+import LoginPage from './pages/LoginPage';
+import AdminDashboard from './pages/AdminDashboard';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
