@@ -7,9 +7,9 @@ router.get('/insights', authMiddleware, async (req, res) => {
   try {
     const { type, market, priority, limit = 20 } = req.query;
     const filter = { isActive: true };
-    if (type) filter.type = type;
-    if (market) filter.market = market;
-    if (priority) filter.priority = priority;
+    if (typeof type === 'string') filter.type = type;
+    if (typeof market === 'string') filter.market = market;
+    if (typeof priority === 'string') filter.priority = priority;
 
     const insights = await AIMarketInsight.find(filter)
       .sort({ createdAt: -1 })
@@ -58,7 +58,8 @@ router.put('/insights/:id', authMiddleware, adminMiddleware, async (req, res) =>
 // DELETE /api/ai-insights/insights/:id (admin only)
 router.delete('/insights/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    await AIMarketInsight.findByIdAndDelete(req.params.id);
+    const insight = await AIMarketInsight.findByIdAndDelete(req.params.id);
+    if (!insight) return res.status(404).json({ success: false, message: 'Insight not found.' });
     res.json({ success: true, message: 'Insight deleted.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -70,9 +71,9 @@ router.get('/all', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { type, market, priority, limit = 50 } = req.query;
     const filter = {};
-    if (type) filter.type = type;
-    if (market) filter.market = market;
-    if (priority) filter.priority = priority;
+    if (typeof type === 'string') filter.type = type;
+    if (typeof market === 'string') filter.market = market;
+    if (typeof priority === 'string') filter.priority = priority;
 
     const insights = await AIMarketInsight.find(filter)
       .sort({ createdAt: -1 })

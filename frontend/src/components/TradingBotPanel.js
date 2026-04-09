@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { tradingAPI } from '../utils/api';
 
-const TRADING_PAIRS = ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'XRP/USDT', 'ADA/USDT', 'DOGE/USDT', 'AVAX/USDT'];
 const STRATEGIES = ['momentum', 'mean_reversion', 'trend_following', 'ai_signals'];
-const TRADE_TYPES = ['spot', 'futures'];
 
 const strategyLabels = {
   momentum: '⚡ Momentum',
