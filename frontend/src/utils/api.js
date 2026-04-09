@@ -99,3 +99,22 @@ export const userAPI = {
   updateProfile: (data) => api.put('/users/profile', data),
   getWallet: () => api.get('/users/wallet'),
 };
+
+// AI Insights
+export const aiInsightsAPI = {
+  getAll: (params) => api.get('/ai-insights/all', { params }),
+  getActive: (params) => api.get('/ai-insights/insights', { params }),
+  getConfig: () => api.get('/ai-insights/config'),
+  create: (data) => api.post('/ai-insights/insights', data),
+  update: (id, data) => api.put(`/ai-insights/insights/${id}`, data),
+  delete: (id) => api.delete(`/ai-insights/insights/${id}`),
+};
+
+// Trading Bot
+export const tradingAPI = {
+  getMySchedules: () => api.get('/trading/schedules'),
+  createSchedule: (data) => api.post('/trading/schedules', data),
+  updateSchedule: (id, data) => api.put(`/trading/schedules/${id}`, data),
+  deleteSchedule: (id) => api.delete(`/trading/schedules/${id}`),
+  adminGetAll: (params) => api.get('/trading/admin/all', { params }),
+};

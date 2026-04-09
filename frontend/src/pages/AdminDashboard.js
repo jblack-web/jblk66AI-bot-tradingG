@@ -10,12 +10,18 @@ import WithdrawalSettings from '../components/WithdrawalSettings';
 import UsersPanel from '../components/UsersPanel';
 import TiersPanel from '../components/TiersPanel';
 import PromoCodesPanel from '../components/PromoCodesPanel';
+import AIInsightsPanel from '../components/AIInsightsPanel';
+import TradingBotPanel from '../components/TradingBotPanel';
 
 const navItems = [
   { section: 'Main', items: [
     { path: '/admin', label: 'Dashboard', icon: '📊', exact: true },
     { path: '/admin/templates', label: 'Template Library', icon: '🎨', badge: '5000+' },
     { path: '/admin/payments', label: 'Payments', icon: '💳' },
+  ]},
+  { section: 'AI Trading', items: [
+    { path: '/admin/ai-insights', label: 'AI Insights', icon: '🤖' },
+    { path: '/admin/trading-bots', label: 'Trading Bots', icon: '⚡' },
   ]},
   { section: 'Finance', items: [
     { path: '/admin/withdrawals', label: 'Withdrawals', icon: '💸' },
@@ -44,6 +50,8 @@ export default function AdminDashboard() {
     if (p.startsWith('/admin/users')) return 'User Management';
     if (p.startsWith('/admin/tiers')) return 'Tier Packages';
     if (p.startsWith('/admin/promo-codes')) return 'Promo Codes';
+    if (p.startsWith('/admin/ai-insights')) return 'AI Market Insights';
+    if (p.startsWith('/admin/trading-bots')) return 'Trading Bots';
     return 'Admin Dashboard';
   })();
 
@@ -123,6 +131,8 @@ export default function AdminDashboard() {
             <Route path="/users" element={<UsersPanel />} />
             <Route path="/tiers" element={<TiersPanel />} />
             <Route path="/promo-codes" element={<PromoCodesPanel />} />
+            <Route path="/ai-insights" element={<AIInsightsPanel />} />
+            <Route path="/trading-bots" element={<TradingBotPanel />} />
           </Routes>
         </div>
       </div>
