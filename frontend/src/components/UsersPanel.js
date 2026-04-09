@@ -167,8 +167,8 @@ export default function UsersPanel() {
                       <select
                         className="form-select"
                         style={{ padding: '4px 8px', fontSize: 12, width: 140 }}
-                        value={u.accountManagerId?._id || u.accountManagerId || ''}
-                        onChange={e => handleUpdate(u._id, 'accountManagerId', e.target.value || null)}
+                        value={u.accountManagerId?._id || ''}
+                        onChange={e => handleUpdate(u._id, 'accountManagerId', e.target.value === '' ? null : e.target.value)}
                       >
                         <option value="">— None —</option>
                         {managers.map(m => (
