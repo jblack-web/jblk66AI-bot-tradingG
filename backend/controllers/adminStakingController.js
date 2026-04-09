@@ -93,19 +93,60 @@ exports.updatePool = async (req, res) => {
     if (!poolId) {
       return res.status(400).json({ success: false, message: 'Invalid pool ID' });
     }
-    // Whitelist only the fields admins are allowed to update
-    const allowedFields = [
-      'name', 'description', 'blockchain', 'minimumStake', 'maximumStake',
-      'annualYieldMin', 'annualYieldMax', 'lockPeriodOptions', 'fee',
-      'riskLevel', 'capacity', 'tier', 'isActive', 'isLiquid', 'earlyWithdrawalFee',
-    ];
+
+    // Whitelist allowed fields and cast each value to its expected primitive type
+    // to prevent NoSQL operator injection from req.body values.
+    const allowedRiskLevels = ['Very Low', 'Low', 'Low-Medium', 'Medium', 'High'];
+    const allowedTiers = ['Starter', 'Advanced', 'Professional', 'Elite', 'DeFi', 'Liquid'];
+    const { body } = req;
     const updates = {};
-    for (const field of allowedFields) {
-      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-        updates[field] = req.body[field];
-      }
+
+    if (typeof body.name === 'string') updates.name = body.name.trim();
+    if (typeof body.description === 'string') updates.description = body.description.trim();
+    if (typeof body.blockchain === 'string') updates.blockchain = body.blockchain.trim();
+    if (typeof body.minimumStake === 'number' || typeof body.minimumStake === 'string') {
+      const v = parseFloat(body.minimumStake);
+      if (!isNaN(v) && v >= 0) updates.minimumStake = v;
     }
-    const pool = await StakingPool.findByIdAndUpdate(poolId, updates, {
+    if (typeof body.maximumStake === 'number' || typeof body.maximumStake === 'string') {
+      const v = parseFloat(body.maximumStake);
+      if (!isNaN(v) && v >= 0) updates.maximumStake = v;
+    }
+    if (typeof body.annualYieldMin === 'number' || typeof body.annualYieldMin === 'string') {
+      const v = parseFloat(body.annualYieldMin);
+      if (!isNaN(v) && v >= 0) updates.annualYieldMin = v;
+    }
+    if (typeof body.annualYieldMax === 'number' || typeof body.annualYieldMax === 'string') {
+      const v = parseFloat(body.annualYieldMax);
+      if (!isNaN(v) && v >= 0) updates.annualYieldMax = v;
+    }
+    if (typeof body.fee === 'number' || typeof body.fee === 'string') {
+      const v = parseFloat(body.fee);
+      if (!isNaN(v) && v >= 0) updates.fee = v;
+    }
+    if (typeof body.earlyWithdrawalFee === 'number' || typeof body.earlyWithdrawalFee === 'string') {
+      const v = parseFloat(body.earlyWithdrawalFee);
+      if (!isNaN(v) && v >= 0) updates.earlyWithdrawalFee = v;
+    }
+    if (typeof body.capacity === 'number' || typeof body.capacity === 'string') {
+      const v = parseFloat(body.capacity);
+      if (!isNaN(v) && v >= 0) updates.capacity = v;
+    }
+    if (Array.isArray(body.lockPeriodOptions)) {
+      updates.lockPeriodOptions = body.lockPeriodOptions
+        .map(d => parseInt(d, 10))
+        .filter(d => !isNaN(d) && d > 0);
+    }
+    if (typeof body.riskLevel === 'string' && allowedRiskLevels.includes(body.riskLevel)) {
+      updates.riskLevel = body.riskLevel;
+    }
+    if (typeof body.tier === 'string' && allowedTiers.includes(body.tier)) {
+      updates.tier = body.tier;
+    }
+    if (typeof body.isActive === 'boolean') updates.isActive = body.isActive;
+    if (typeof body.isLiquid === 'boolean') updates.isLiquid = body.isLiquid;
+
+    const pool = await StakingPool.findByIdAndUpdate(poolId, { $set: updates }, {
       new: true,
       runValidators: true,
     });
@@ -126,18 +167,20 @@ exports.getStakers = async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    // Build a clean, non-tainted query filter using only validated values
+    // Build a clean, non-tainted query filter using only validated values.
+    // Use explicit $eq operators to make it clear to static analyzers that
+    // user input is not treated as a query operator.
     const filter = {};
     const allowedStatuses = ['Active', 'Completed', 'Withdrawn', 'Paused'];
     if (req.query.status && allowedStatuses.includes(req.query.status)) {
-      filter.status = req.query.status;
+      filter.status = { $eq: req.query.status };
     }
     if (req.query.poolId) {
       const poolId = toObjectId(req.query.poolId);
       if (!poolId) {
         return res.status(400).json({ success: false, message: 'Invalid pool ID' });
       }
-      filter.poolId = poolId;
+      filter.poolId = { $eq: poolId };
     }
 
     const [stakes, total] = await Promise.all([
