@@ -10,6 +10,7 @@ import WithdrawalSettings from '../components/WithdrawalSettings';
 import UsersPanel from '../components/UsersPanel';
 import TiersPanel from '../components/TiersPanel';
 import PromoCodesPanel from '../components/PromoCodesPanel';
+import StakingPanel from '../components/StakingPanel';
 
 const navItems = [
   { section: 'Main', items: [
@@ -19,6 +20,7 @@ const navItems = [
   ]},
   { section: 'Finance', items: [
     { path: '/admin/withdrawals', label: 'Withdrawals', icon: '💸' },
+    { path: '/admin/staking', label: 'Staking', icon: '₿' },
   ]},
   { section: 'Users', items: [
     { path: '/admin/users', label: 'Users', icon: '👥' },

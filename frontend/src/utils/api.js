@@ -86,6 +86,21 @@ export const adminAPI = {
   updateTier: (id, data) => api.put(`/admin/tiers/${id}`, data),
 };
 
+// Staking Admin
+export const stakingAdminAPI = {
+  getDashboard: () => api.get('/admin/staking/dashboard'),
+  getPools: () => api.get('/admin/staking/pools'),
+  createPool: (data) => api.post('/admin/staking/pools', data),
+  updatePool: (id, data) => api.put(`/admin/staking/pools/${id}`, data),
+  getStakers: (params) => api.get('/admin/staking/stakers', { params }),
+  getStakerDetails: (id) => api.get(`/admin/staking/stakers/${id}`),
+  manualPayout: (data) => api.post('/admin/staking/payout', data),
+  issueBonus: (data) => api.post('/admin/staking/bonus', data),
+  getAnalytics: () => api.get('/admin/staking/analytics'),
+  getRevenue: () => api.get('/admin/staking/revenue'),
+  createCampaign: (data) => api.post('/admin/staking/campaigns', data),
+};
+
 // Tiers
 export const tierAPI = {
   getAll: () => api.get('/tiers'),
