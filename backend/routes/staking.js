@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 const stakingController = require('../controllers/stakingController');
 
 // All staking routes require authentication
-router.use(authenticate);
+router.use(authMiddleware);
 
 // Pool information
 router.get('/pools', stakingController.getPools);

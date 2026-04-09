@@ -46,6 +46,7 @@ export default function AdminDashboard() {
     if (p.startsWith('/admin/users')) return 'User Management';
     if (p.startsWith('/admin/tiers')) return 'Tier Packages';
     if (p.startsWith('/admin/promo-codes')) return 'Promo Codes';
+    if (p.startsWith('/admin/staking')) return 'Bitcoin Staking';
     return 'Admin Dashboard';
   })();
 
@@ -125,6 +126,7 @@ export default function AdminDashboard() {
             <Route path="/users" element={<UsersPanel />} />
             <Route path="/tiers" element={<TiersPanel />} />
             <Route path="/promo-codes" element={<PromoCodesPanel />} />
+            <Route path="/staking" element={<StakingPanel />} />
           </Routes>
         </div>
       </div>

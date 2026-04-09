@@ -1,24 +1,24 @@
-# Dockerfile
-
-# Stage 1: Build the frontend
-FROM node:16 AS frontend-build
+# ─── Stage 1: Build the React frontend ───────────────────────────────────────
+FROM node:18-alpine AS frontend-build
 WORKDIR /app/frontend
-COPY ./frontend/package.json ./frontend/package-lock.json ./
-RUN npm install
-COPY ./frontend/ .
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ .
 RUN npm run build
 
-# Stage 2: Build the backend
-FROM node:16 AS backend-build
+# ─── Stage 2: Install backend dependencies ────────────────────────────────────
+FROM node:18-alpine AS backend-build
 WORKDIR /app/backend
-COPY ./backend/package.json ./backend/package-lock.json ./
-RUN npm install
-COPY ./backend/ .
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci --omit=dev
+COPY backend/ .
+# Embed the compiled frontend
 COPY --from=frontend-build /app/frontend/build ./public
 
-# Stage 3: Final image
-FROM node:16
+# ─── Stage 3: Lean production image ──────────────────────────────────────────
+FROM node:18-alpine
 WORKDIR /app
 COPY --from=backend-build /app/backend .
+ENV NODE_ENV=production
 EXPOSE 3000
-CMD [ "npm", "start" ]
+CMD ["node", "server.js"]
