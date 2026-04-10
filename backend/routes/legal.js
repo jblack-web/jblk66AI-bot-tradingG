@@ -1,9 +1,19 @@
 const router = require('express').Router();
+const rateLimit = require('express-rate-limit');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const ctrl = require('../controllers/legalController');
 
-// All legal routes require admin authentication
-router.use(authMiddleware, adminMiddleware);
+// Rate limiter for legal admin routes (admin-only, but still limit abuse)
+const legalRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300,                  // max 300 requests per window per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests. Please try again later.' },
+});
+
+// All legal routes require admin authentication and rate limiting
+router.use(legalRateLimit, authMiddleware, adminMiddleware);
 
 // Dashboard summary
 router.get('/dashboard', ctrl.getDashboardSummary);

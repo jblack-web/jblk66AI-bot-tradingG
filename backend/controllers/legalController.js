@@ -91,9 +91,35 @@ exports.addTeamMember = async (req, res) => {
 
 exports.updateTeamMember = async (req, res) => {
   try {
-    const member = await LegalTeamMember.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    // Explicitly pick allowed fields to prevent mass-assignment / NoSQL injection
+    const ALLOWED_ROLES = ['admin', 'in-house', 'external'];
+    const ALLOWED_AREAS = ['compliance', 'kyc-aml', 'contracts', 'disputes', 'regulatory', 'data-privacy', 'intellectual-property', 'corporate', 'litigation', 'general'];
+    const { name, email, phone, title, organization, barNumber, jurisdiction, bio, avatarUrl } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = String(name);
+    if (email !== undefined) updates.email = String(email).toLowerCase();
+    if (phone !== undefined) updates.phone = String(phone);
+    if (title !== undefined) updates.title = String(title);
+    if (organization !== undefined) updates.organization = String(organization);
+    if (barNumber !== undefined) updates.barNumber = String(barNumber);
+    if (jurisdiction !== undefined) updates.jurisdiction = String(jurisdiction);
+    if (bio !== undefined) updates.bio = String(bio);
+    if (avatarUrl !== undefined) updates.avatarUrl = String(avatarUrl);
+    const roleVal = allow(req.body.role, ALLOWED_ROLES);
+    if (roleVal) updates.role = roleVal;
+    if (Array.isArray(req.body.legalAreas)) {
+      updates.legalAreas = req.body.legalAreas.filter(a => ALLOWED_AREAS.includes(String(a)));
+    }
+    if (req.body.isActive !== undefined) updates.isActive = Boolean(req.body.isActive);
+    if (req.body.canViewDocuments !== undefined) updates.canViewDocuments = Boolean(req.body.canViewDocuments);
+    if (req.body.canUploadDocuments !== undefined) updates.canUploadDocuments = Boolean(req.body.canUploadDocuments);
+    if (req.body.canManageTickets !== undefined) updates.canManageTickets = Boolean(req.body.canManageTickets);
+    if (req.body.canViewAuditLog !== undefined) updates.canViewAuditLog = Boolean(req.body.canViewAuditLog);
+    if (req.body.canManageTeam !== undefined) updates.canManageTeam = Boolean(req.body.canManageTeam);
+
+    const member = await LegalTeamMember.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
     if (!member) return res.status(404).json({ success: false, message: 'Member not found.' });
-    await logAction(req, 'team.update', 'LegalTeamMember', member._id, member.name, req.body, 'medium');
+    await logAction(req, 'team.update', 'LegalTeamMember', member._id, member.name, updates, 'medium');
     res.json({ success: true, member });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -520,9 +546,33 @@ exports.createCalendarEvent = async (req, res) => {
 
 exports.updateCalendarEvent = async (req, res) => {
   try {
-    const evt = await ComplianceCalendar.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const ALLOWED_STATUSES = ['upcoming', 'in-progress', 'completed', 'overdue', 'cancelled'];
+    const ALLOWED_EVENT_TYPES = ['filing-deadline', 'audit', 'eoy-reporting', 'review', 'kyc-renewal', 'license-renewal', 'regulatory-submission', 'board-meeting', 'compliance-training', 'data-retention-review', 'policy-review', 'other'];
+    const ALLOWED_PRIORITIES = ['low', 'medium', 'high', 'critical'];
+    const ALLOWED_RECURRENCE = ['daily', 'weekly', 'monthly', 'quarterly', 'annually'];
+
+    const updates = {};
+    if (req.body.title !== undefined) updates.title = String(req.body.title);
+    if (req.body.description !== undefined) updates.description = String(req.body.description);
+    if (req.body.jurisdiction !== undefined) updates.jurisdiction = String(req.body.jurisdiction);
+    const statusVal = allow(req.body.status, ALLOWED_STATUSES);
+    if (statusVal) updates.status = statusVal;
+    const eventTypeVal = allow(req.body.eventType, ALLOWED_EVENT_TYPES);
+    if (eventTypeVal) updates.eventType = eventTypeVal;
+    const priorityVal = allow(req.body.priority, ALLOWED_PRIORITIES);
+    if (priorityVal) updates.priority = priorityVal;
+    if (req.body.dueDate) updates.dueDate = new Date(req.body.dueDate);
+    if (req.body.startDate) updates.startDate = new Date(req.body.startDate);
+    if (req.body.notifyDaysBefore !== undefined) updates.notifyDaysBefore = posInt(req.body.notifyDaysBefore, 7);
+    if (req.body.isRecurring !== undefined) updates.isRecurring = Boolean(req.body.isRecurring);
+    const recurrenceVal = allow(req.body.recurrencePattern, ALLOWED_RECURRENCE);
+    if (recurrenceVal) updates.recurrencePattern = recurrenceVal;
+    if (req.body.assignedTo !== undefined) updates.assignedTo = req.body.assignedTo;
+    if (req.body.assignedToName !== undefined) updates.assignedToName = String(req.body.assignedToName);
+
+    const evt = await ComplianceCalendar.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
     if (!evt) return res.status(404).json({ success: false, message: 'Event not found.' });
-    await logAction(req, 'calendar.update', 'ComplianceCalendar', evt._id, evt.title, req.body, 'low');
+    await logAction(req, 'calendar.update', 'ComplianceCalendar', evt._id, evt.title, updates, 'low');
     res.json({ success: true, event: evt });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
