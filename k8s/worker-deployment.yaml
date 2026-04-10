@@ -1,0 +1,56 @@
+# k8s/worker-deployment.yaml
+# Background Worker – Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jblk66ai-worker
+  namespace: jblk66ai
+  labels:
+    app: jblk66ai-worker
+    app.kubernetes.io/name: jblk66ai
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jblk66ai-worker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: jblk66ai-worker
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: worker
+          image: ghcr.io/jblack-web/jblk66ai-backend:latest
+          imagePullPolicy: Always
+          command: ["node", "config/cronJobs.js"]
+          envFrom:
+            - configMapRef:
+                name: jblk66ai-config
+            - secretRef:
+                name: jblk66ai-secrets
+          env:
+            - name: WORKER_MODE
+              value: "true"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            exec:
+              command: ["node", "-e", "console.log('alive')"]
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+      restartPolicy: Always
