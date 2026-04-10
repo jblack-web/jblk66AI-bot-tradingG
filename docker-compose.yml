@@ -1,0 +1,153 @@
+version: "3.9"
+
+# ────────────────────────────────────────────────────────────────────────────
+# jblk66AI – docker-compose.yml
+# Local development / integration-testing environment
+# Usage:
+#   cp envs/.env.dev .env
+#   docker compose up --build
+# ────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── MongoDB ──────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:6.0
+    container_name: jblk66ai-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-changeme}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-jblk66ai}
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - jblk66ai-net
+
+  # ── Redis (caching / session / queues) ───────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: jblk66ai-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - jblk66ai-net
+
+  # ── Backend API ───────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: jblk66ai-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongo:27017/${MONGO_DB:-jblk66ai}?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - ./backend:/app:ro
+      - /app/node_modules
+    networks:
+      - jblk66ai-net
+
+  # ── Frontend (React dev server for local; Nginx in prod) ─────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: jblk66ai-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - jblk66ai-net
+
+  # ── Background Worker (cron jobs, payout processing) ─────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: jblk66ai-worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      WORKER_MODE: "true"
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-changeme}@mongo:27017/${MONGO_DB:-jblk66ai}?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jblk66ai-net
+
+  # ── Nginx Reverse Proxy (optional – uncomment for full stack local test) ──
+  # nginx:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.nginx
+  #   container_name: jblk66ai-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #   volumes:
+  #     - ./nginx:/etc/nginx:ro
+  #     - letsencrypt_certs:/etc/nginx/ssl:ro
+  #   networks:
+  #     - jblk66ai-net
+
+# ── Volumes ────────────────────────────────────────────────────────────────
+volumes:
+  mongo_data:
+  redis_data:
+  # letsencrypt_certs:
+
+# ── Networks ───────────────────────────────────────────────────────────────
+networks:
+  jblk66ai-net:
+    driver: bridge

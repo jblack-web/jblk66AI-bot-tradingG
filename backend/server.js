@@ -37,9 +37,20 @@ app.use('/api/account-manager', require('./routes/accountManager'));
 app.use('/api/ai-insights', require('./routes/aiMarketInsights'));
 app.use('/api/trading', require('./routes/trading'));
 
-// Health check
+// Health check – liveness probe (always responds if process is alive)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Readiness probe – confirms DB connection is live before accepting traffic
+app.get('/api/ready', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  // 1 = connected, 2 = connecting
+  if (dbState === 1) {
+    res.json({ status: 'ready', db: 'connected', timestamp: new Date().toISOString() });
+  } else {
+    res.status(503).json({ status: 'not_ready', db: 'disconnected', timestamp: new Date().toISOString() });
+  }
 });
 
 // Serve React app for all other routes

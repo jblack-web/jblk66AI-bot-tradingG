@@ -1,0 +1,42 @@
+# k8s/ingress.yaml
+# Ingress – routes external traffic into the cluster
+# Requires nginx-ingress-controller (or cloud LB ingress class).
+# For TLS: install cert-manager and update the tls section.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jblk66ai-ingress
+  namespace: jblk66ai
+  labels:
+    app.kubernetes.io/name: jblk66ai
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/rate-limit: "30"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"   # uncomment when using cert-manager
+spec:
+  ingressClassName: nginx
+  # tls:                                                    # uncomment for HTTPS
+  #   - hosts:
+  #       - jblk66ai.com
+  #     secretName: jblk66ai-tls
+  rules:
+    - host: jblk66ai.com                                   # replace with your domain
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: jblk66ai-backend
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jblk66ai-frontend
+                port:
+                  number: 80

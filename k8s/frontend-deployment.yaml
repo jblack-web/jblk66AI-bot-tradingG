@@ -1,0 +1,73 @@
+# k8s/frontend-deployment.yaml
+# React Frontend (Nginx) – Deployment + Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jblk66ai-frontend
+  namespace: jblk66ai
+  labels:
+    app: jblk66ai-frontend
+    app.kubernetes.io/name: jblk66ai
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: jblk66ai-frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: jblk66ai-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/jblack-web/jblk66ai-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jblk66ai-frontend
+  namespace: jblk66ai
+  labels:
+    app: jblk66ai-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: jblk66ai-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

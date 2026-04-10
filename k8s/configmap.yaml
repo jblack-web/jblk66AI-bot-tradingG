@@ -1,0 +1,17 @@
+# k8s/configmap.yaml
+# Non-sensitive runtime configuration for all jblk66AI workloads
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jblk66ai-config
+  namespace: jblk66ai
+  labels:
+    app.kubernetes.io/name: jblk66ai
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  LOG_LEVEL: "warn"
+  JWT_EXPIRES_IN: "1d"
+  BTC_USD_PRICE: "50000"
+  REDIS_URL: "redis://jblk66ai-redis:6379"
+  MONGO_DB: "jblk66ai"
