@@ -99,3 +99,21 @@ export const userAPI = {
   updateProfile: (data) => api.put('/users/profile', data),
   getWallet: () => api.get('/users/wallet'),
 };
+
+// Legal
+export const legalAPI = {
+  getDocuments: (params) => api.get('/legal/documents', { params }),
+  getDocument: (id) => api.get(`/legal/documents/${id}`),
+  createDocument: (data) => api.post('/legal/documents', data),
+  updateDocument: (id, data) => api.put(`/legal/documents/${id}`, data),
+  changeDocumentStatus: (id, status) => api.patch(`/legal/documents/${id}/status`, { status }),
+  deleteDocument: (id) => api.delete(`/legal/documents/${id}`),
+  getWorkflows: () => api.get('/legal/workflows'),
+  getWorkflow: (id) => api.get(`/legal/workflows/${id}`),
+  createWorkflow: (data) => api.post('/legal/workflows', data),
+  updateWorkflow: (id, data) => api.put(`/legal/workflows/${id}`, data),
+  deleteWorkflow: (id) => api.delete(`/legal/workflows/${id}`),
+  startWorkflowInstance: (id, data) => api.post(`/legal/workflows/${id}/start`, data),
+  advanceWorkflowInstance: (id, instanceId, data) => api.patch(`/legal/workflows/${id}/instances/${instanceId}/advance`, data),
+  getStats: () => api.get('/legal/stats'),
+};

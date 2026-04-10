@@ -10,6 +10,8 @@ import WithdrawalSettings from '../components/WithdrawalSettings';
 import UsersPanel from '../components/UsersPanel';
 import TiersPanel from '../components/TiersPanel';
 import PromoCodesPanel from '../components/PromoCodesPanel';
+import LegalPanel from '../components/LegalPanel';
+import MembershipUpgradePanel from '../components/MembershipUpgradePanel';
 
 const navItems = [
   { section: 'Main', items: [
@@ -22,8 +24,12 @@ const navItems = [
   ]},
   { section: 'Users', items: [
     { path: '/admin/users', label: 'Users', icon: '👥' },
-    { path: '/admin/tiers', label: 'Tier Packages', icon: '⭐' },
+    { path: '/admin/membership', label: 'Membership Upgrades', icon: '⭐' },
+    { path: '/admin/tiers', label: 'Tier Packages', icon: '📦' },
     { path: '/admin/promo-codes', label: 'Promo Codes', icon: '🎁' },
+  ]},
+  { section: 'Legal', items: [
+    { path: '/admin/legal', label: 'Legal & Compliance', icon: '⚖️', badge: 'New' },
   ]},
 ];
 
@@ -42,8 +48,10 @@ export default function AdminDashboard() {
     if (p.startsWith('/admin/payments')) return 'Payment Management';
     if (p.startsWith('/admin/withdrawals')) return 'Withdrawal Settings';
     if (p.startsWith('/admin/users')) return 'User Management';
+    if (p.startsWith('/admin/membership')) return 'Membership Upgrades';
     if (p.startsWith('/admin/tiers')) return 'Tier Packages';
     if (p.startsWith('/admin/promo-codes')) return 'Promo Codes';
+    if (p.startsWith('/admin/legal')) return 'Legal & Compliance';
     return 'Admin Dashboard';
   })();
 
@@ -121,8 +129,10 @@ export default function AdminDashboard() {
             <Route path="/payments" element={<PaymentPanel />} />
             <Route path="/withdrawals" element={<WithdrawalSettings />} />
             <Route path="/users" element={<UsersPanel />} />
+            <Route path="/membership" element={<MembershipUpgradePanel />} />
             <Route path="/tiers" element={<TiersPanel />} />
             <Route path="/promo-codes" element={<PromoCodesPanel />} />
+            <Route path="/legal" element={<LegalPanel />} />
           </Routes>
         </div>
       </div>

@@ -10,7 +10,6 @@ export default function UsersPanel() {
   const [tier, setTier] = useState('');
   const [page, setPage] = useState(1);
   const [msg, setMsg] = useState(null);
-  const [editUser, setEditUser] = useState(null);
   const [creditForm, setCreditForm] = useState({ userId: null, amount: '', type: 'wallet', note: '' });
   const [showCreditModal, setShowCreditModal] = useState(false);
 
@@ -37,6 +36,7 @@ export default function UsersPanel() {
   };
 
   useEffect(() => { fetchManagers(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchUsers(); }, [page, tier]);
 
   const handleSearch = (e) => { e.preventDefault(); fetchUsers(); };
@@ -77,10 +77,6 @@ export default function UsersPanel() {
     return <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{d.toLocaleDateString()}</span>;
   };
 
-  const tierBadge = (t) => {
-    const map = { premium: 'badge-yellow', advanced: 'badge-purple', basic: 'badge-blue', free: 'badge-gray' };
-    return <span className={`badge ${map[t] || 'badge-gray'}`}>{t || 'free'}</span>;
-  };
 
   return (
     <div>

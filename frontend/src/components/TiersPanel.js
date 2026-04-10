@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminAPI, tierAPI } from '../utils/api';
+import { tierAPI } from '../utils/api';
 
 export default function TiersPanel() {
   const [tiers, setTiers] = useState([]);

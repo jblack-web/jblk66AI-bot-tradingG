@@ -1,11 +1,12 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import '../styles/App.css';
-import { authAPI } from '../utils/api';
+import './styles/App.css';
+import { authAPI } from './utils/api';
 
 // Pages
-import LoginPage from '../pages/LoginPage';
-import AdminDashboard from '../pages/AdminDashboard';
+import LoginPage from './pages/LoginPage';
+import AdminDashboard from './pages/AdminDashboard';
+import LandingPage from './pages/LandingPage';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -48,6 +49,7 @@ function App() {
     <AuthContext.Provider value={{ user, login, logout }}>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={user ? <Navigate to="/admin" replace /> : <LandingPage />} />
           <Route
             path="/login"
             element={user ? <Navigate to="/admin" replace /> : <LoginPage />}
@@ -56,7 +58,7 @@ function App() {
             path="/admin/*"
             element={user ? <AdminDashboard /> : <Navigate to="/login" replace />}
           />
-          <Route path="*" element={<Navigate to={user ? '/admin' : '/login'} replace />} />
+          <Route path="*" element={<Navigate to={user ? '/admin' : '/'} replace />} />
         </Routes>
       </BrowserRouter>
     </AuthContext.Provider>

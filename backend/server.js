@@ -36,6 +36,7 @@ app.use('/api/referrals', require('./routes/referrals'));
 app.use('/api/account-manager', require('./routes/accountManager'));
 app.use('/api/ai-insights', require('./routes/aiMarketInsights'));
 app.use('/api/trading', require('./routes/trading'));
+app.use('/api/legal', require('./routes/legal'));
 
 // Health check
 app.get('/api/health', (req, res) => {
