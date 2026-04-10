@@ -3,7 +3,7 @@ import { legalAPI } from '../utils/api';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const PRIORITY_COLORS = { low: '#6b7280', medium: '#f59e0b', high: '#ef4444', urgent: '#7c3aed', critical: '#7c3aed' };
+const PRIORITY_COLORS = { low: '#6b7280', medium: '#f59e0b', high: '#ef4444', urgent: '#7c3aed', critical: '#dc2626' };
 const SEVERITY_COLORS = { info: '#3b82f6', warning: '#f59e0b', critical: '#ef4444' };
 const STATUS_COLORS = {
   pending: '#f59e0b', 'in-progress': '#3b82f6', 'awaiting-response': '#8b5cf6',

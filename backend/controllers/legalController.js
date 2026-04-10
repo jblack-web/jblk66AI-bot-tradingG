@@ -5,6 +5,27 @@ const LegalAlert = require('../models/LegalAlert');
 const ComplianceCalendar = require('../models/ComplianceCalendar');
 const LegalAuditLog = require('../models/LegalAuditLog');
 
+// ─── Input Sanitization ────────────────────────────────────────────────────────
+
+// Ensure a value is a plain string (prevents NoSQL operator injection)
+function str(val) {
+  if (val === undefined || val === null) return undefined;
+  if (typeof val === 'object') return undefined; // reject objects like { $gt: '' }
+  return String(val);
+}
+
+// Ensure a value is a safe positive integer for pagination
+function posInt(val, defaultVal) {
+  const n = parseInt(val, 10);
+  return Number.isFinite(n) && n > 0 ? n : defaultVal;
+}
+
+// Allowlist filter: only include a value if it is in the allowed set
+function allow(val, allowed) {
+  const s = str(val);
+  return s && allowed.includes(s) ? s : undefined;
+}
+
 // ─── Audit Helper ─────────────────────────────────────────────────────────────
 
 async function logAction(req, action, resource, resourceId, resourceTitle, details, severity = 'low') {
@@ -32,15 +53,22 @@ async function logAction(req, action, resource, resourceId, resourceTitle, detai
 
 exports.getTeamMembers = async (req, res) => {
   try {
-    const { role, area, active, page = 1, limit = 50 } = req.query;
+    const ROLES = ['admin', 'in-house', 'external'];
+    const AREAS = ['compliance', 'kyc-aml', 'contracts', 'disputes', 'regulatory', 'data-privacy', 'intellectual-property', 'corporate', 'litigation', 'general'];
+    const role = allow(req.query.role, ROLES);
+    const area = allow(req.query.area, AREAS);
+    const activeRaw = str(req.query.active);
+    const page = posInt(req.query.page, 1);
+    const limit = posInt(req.query.limit, 50);
+
     const filter = {};
     if (role) filter.role = role;
-    if (active !== undefined) filter.isActive = active === 'true';
+    if (activeRaw !== undefined) filter.isActive = activeRaw === 'true';
     if (area) filter.legalAreas = area;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
     const [members, total] = await Promise.all([
-      LegalTeamMember.find(filter).sort({ name: 1 }).skip(skip).limit(Number(limit)),
+      LegalTeamMember.find(filter).sort({ name: 1 }).skip(skip).limit(limit),
       LegalTeamMember.countDocuments(filter),
     ]);
 
@@ -87,19 +115,29 @@ exports.deleteTeamMember = async (req, res) => {
 
 exports.getTickets = async (req, res) => {
   try {
-    const { status, priority, category, page = 1, limit = 20, submittedBy } = req.query;
+    const STATUSES = ['pending', 'in-progress', 'awaiting-response', 'resolved', 'closed', 'escalated'];
+    const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
+    const CATEGORIES = ['compliance', 'kyc-aml', 'contracts', 'disputes', 'regulatory', 'data-privacy', 'general-inquiry', 'document-request', 'other'];
+
+    const status = allow(req.query.status, STATUSES);
+    const priority = allow(req.query.priority, PRIORITIES);
+    const category = allow(req.query.category, CATEGORIES);
+    const submittedBy = str(req.query.submittedBy);
+    const page = posInt(req.query.page, 1);
+    const limit = posInt(req.query.limit, 20);
+
     const filter = {};
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
     if (category) filter.category = category;
     if (submittedBy) filter.submittedBy = submittedBy;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
     const [tickets, total] = await Promise.all([
       LegalTicket.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(Number(limit))
+        .limit(limit)
         .populate('assignedTo', 'name email role'),
       LegalTicket.countDocuments(filter),
     ]);
@@ -228,15 +266,25 @@ exports.addTicketMessage = async (req, res) => {
 
 exports.getDocuments = async (req, res) => {
   try {
-    const { docType, category, accessLevel, archived = false, page = 1, limit = 20 } = req.query;
-    const filter = { isArchived: archived === 'true' };
+    const DOC_TYPES = ['terms', 'privacy-policy', 'disclosure', 'risk-warning', 'license', 'filing', 'contract', 'audit-report', 'compliance-report', 'kyc-policy', 'aml-policy', 'data-request', 'regulatory', 'company-policy', 'other'];
+    const CATEGORIES = ['compliance', 'kyc-aml', 'contracts', 'disputes', 'regulatory', 'data-privacy', 'corporate', 'internal', 'external'];
+    const ACCESS_LEVELS = ['admin-only', 'legal-team', 'all-staff', 'public'];
+
+    const docType = allow(req.query.docType, DOC_TYPES);
+    const category = allow(req.query.category, CATEGORIES);
+    const accessLevel = allow(req.query.accessLevel, ACCESS_LEVELS);
+    const archivedRaw = str(req.query.archived);
+    const page = posInt(req.query.page, 1);
+    const limit = posInt(req.query.limit, 20);
+
+    const filter = { isArchived: archivedRaw === 'true' };
     if (docType) filter.docType = docType;
     if (category) filter.category = category;
     if (accessLevel) filter.accessLevel = accessLevel;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
     const [documents, total] = await Promise.all([
-      LegalDocument.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      LegalDocument.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
       LegalDocument.countDocuments(filter),
     ]);
 
@@ -342,14 +390,22 @@ exports.downloadDocument = async (req, res) => {
 
 exports.getAlerts = async (req, res) => {
   try {
-    const { alertType, severity, resolved = false, page = 1, limit = 20 } = req.query;
-    const filter = { isResolved: resolved === 'true' };
+    const ALERT_TYPES = ['regulatory-update', 'kyc-trigger', 'aml-flag', 'suspicious-activity', 'compliance-deadline', 'audit-reminder', 'legal-change', 'data-request', 'sanction-hit', 'policy-change', 'other'];
+    const SEVERITIES = ['info', 'warning', 'critical'];
+
+    const alertType = allow(req.query.alertType, ALERT_TYPES);
+    const severity = allow(req.query.severity, SEVERITIES);
+    const resolvedRaw = str(req.query.resolved);
+    const page = posInt(req.query.page, 1);
+    const limit = posInt(req.query.limit, 20);
+
+    const filter = { isResolved: resolvedRaw === 'true' };
     if (alertType) filter.alertType = alertType;
     if (severity) filter.severity = severity;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
     const [alerts, total] = await Promise.all([
-      LegalAlert.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      LegalAlert.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
       LegalAlert.countDocuments(filter),
     ]);
     const unreadCount = await LegalAlert.countDocuments({ isRead: false, isResolved: false });
@@ -412,22 +468,31 @@ exports.markAlertRead = async (req, res) => {
 
 exports.getCalendarEvents = async (req, res) => {
   try {
-    const { status, eventType, from, to, page = 1, limit = 50 } = req.query;
+    const STATUSES = ['upcoming', 'in-progress', 'completed', 'overdue', 'cancelled'];
+    const EVENT_TYPES = ['filing-deadline', 'audit', 'eoy-reporting', 'review', 'kyc-renewal', 'license-renewal', 'regulatory-submission', 'board-meeting', 'compliance-training', 'data-retention-review', 'policy-review', 'other'];
+
+    const status = allow(req.query.status, STATUSES);
+    const eventType = allow(req.query.eventType, EVENT_TYPES);
+    const fromRaw = str(req.query.from);
+    const toRaw = str(req.query.to);
+    const page = posInt(req.query.page, 1);
+    const limit = posInt(req.query.limit, 50);
+
     const filter = {};
     if (status) filter.status = status;
     if (eventType) filter.eventType = eventType;
-    if (from || to) {
+    if (fromRaw || toRaw) {
       filter.dueDate = {};
-      if (from) filter.dueDate.$gte = new Date(from);
-      if (to) filter.dueDate.$lte = new Date(to);
+      if (fromRaw) filter.dueDate.$gte = new Date(fromRaw);
+      if (toRaw) filter.dueDate.$lte = new Date(toRaw);
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
     const [events, total] = await Promise.all([
       ComplianceCalendar.find(filter)
         .sort({ dueDate: 1 })
         .skip(skip)
-        .limit(Number(limit))
+        .limit(limit)
         .populate('assignedTo', 'name email'),
       ComplianceCalendar.countDocuments(filter),
     ]);
@@ -496,20 +561,30 @@ exports.deleteCalendarEvent = async (req, res) => {
 
 exports.getAuditLog = async (req, res) => {
   try {
-    const { action, resource, performedBy, from, to, page = 1, limit = 50 } = req.query;
+    const RESOURCES = ['LegalDocument', 'LegalTicket', 'LegalTeamMember', 'LegalAlert', 'ComplianceCalendar'];
+    // action is a simple prefix match; we only allow alphanumeric + dot chars to prevent regex injection
+    const actionRaw = str(req.query.action);
+    const action = actionRaw && /^[\w.]+$/.test(actionRaw) ? actionRaw : undefined;
+    const resource = allow(req.query.resource, RESOURCES);
+    const performedBy = str(req.query.performedBy);
+    const fromRaw = str(req.query.from);
+    const toRaw = str(req.query.to);
+    const page = posInt(req.query.page, 1);
+    const limit = posInt(req.query.limit, 50);
+
     const filter = {};
-    if (action) filter.action = { $regex: action, $options: 'i' };
+    if (action) filter.action = { $regex: `^${action}`, $options: 'i' };
     if (resource) filter.resource = resource;
     if (performedBy) filter.performedBy = performedBy;
-    if (from || to) {
+    if (fromRaw || toRaw) {
       filter.createdAt = {};
-      if (from) filter.createdAt.$gte = new Date(from);
-      if (to) filter.createdAt.$lte = new Date(to);
+      if (fromRaw) filter.createdAt.$gte = new Date(fromRaw);
+      if (toRaw) filter.createdAt.$lte = new Date(toRaw);
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
     const [logs, total] = await Promise.all([
-      LegalAuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      LegalAuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
       LegalAuditLog.countDocuments(filter),
     ]);
     res.json({ success: true, logs, total });
