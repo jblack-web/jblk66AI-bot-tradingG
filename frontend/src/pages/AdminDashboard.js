@@ -10,6 +10,7 @@ import WithdrawalSettings from '../components/WithdrawalSettings';
 import UsersPanel from '../components/UsersPanel';
 import TiersPanel from '../components/TiersPanel';
 import PromoCodesPanel from '../components/PromoCodesPanel';
+import LegalPanel from '../components/LegalPanel';
 
 const navItems = [
   { section: 'Main', items: [
@@ -24,6 +25,9 @@ const navItems = [
     { path: '/admin/users', label: 'Users', icon: '👥' },
     { path: '/admin/tiers', label: 'Tier Packages', icon: '⭐' },
     { path: '/admin/promo-codes', label: 'Promo Codes', icon: '🎁' },
+  ]},
+  { section: 'Legal & Compliance', items: [
+    { path: '/admin/legal', label: 'Legal Team', icon: '⚖️', badge: 'New' },
   ]},
 ];
 
@@ -44,6 +48,7 @@ export default function AdminDashboard() {
     if (p.startsWith('/admin/users')) return 'User Management';
     if (p.startsWith('/admin/tiers')) return 'Tier Packages';
     if (p.startsWith('/admin/promo-codes')) return 'Promo Codes';
+    if (p.startsWith('/admin/legal')) return 'Legal Team Management';
     return 'Admin Dashboard';
   })();
 
@@ -123,6 +128,7 @@ export default function AdminDashboard() {
             <Route path="/users" element={<UsersPanel />} />
             <Route path="/tiers" element={<TiersPanel />} />
             <Route path="/promo-codes" element={<PromoCodesPanel />} />
+            <Route path="/legal" element={<LegalPanel />} />
           </Routes>
         </div>
       </div>

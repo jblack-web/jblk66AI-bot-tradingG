@@ -99,3 +99,39 @@ export const userAPI = {
   updateProfile: (data) => api.put('/users/profile', data),
   getWallet: () => api.get('/users/wallet'),
 };
+
+// Legal
+export const legalAPI = {
+  getDashboard: () => api.get('/legal/dashboard'),
+  // Team
+  getTeam: (params) => api.get('/legal/team', { params }),
+  addTeamMember: (data) => api.post('/legal/team', data),
+  updateTeamMember: (id, data) => api.put(`/legal/team/${id}`, data),
+  deleteTeamMember: (id) => api.delete(`/legal/team/${id}`),
+  // Tickets
+  getTickets: (params) => api.get('/legal/tickets', { params }),
+  getTicket: (id) => api.get(`/legal/tickets/${id}`),
+  createTicket: (data) => api.post('/legal/tickets', data),
+  updateTicket: (id, data) => api.put(`/legal/tickets/${id}`, data),
+  addTicketMessage: (id, data) => api.post(`/legal/tickets/${id}/message`, data),
+  // Documents
+  getDocuments: (params) => api.get('/legal/documents', { params }),
+  getDocument: (id) => api.get(`/legal/documents/${id}`),
+  createDocument: (data) => api.post('/legal/documents', data),
+  updateDocument: (id, data) => api.put(`/legal/documents/${id}`, data),
+  deleteDocument: (id) => api.delete(`/legal/documents/${id}`),
+  downloadDocument: (id) => api.post(`/legal/documents/${id}/download`),
+  // Alerts
+  getAlerts: (params) => api.get('/legal/alerts', { params }),
+  createAlert: (data) => api.post('/legal/alerts', data),
+  resolveAlert: (id, data) => api.patch(`/legal/alerts/${id}/resolve`, data),
+  markAlertRead: (id) => api.patch(`/legal/alerts/${id}/read`),
+  // Calendar
+  getCalendar: (params) => api.get('/legal/calendar', { params }),
+  createEvent: (data) => api.post('/legal/calendar', data),
+  updateEvent: (id, data) => api.put(`/legal/calendar/${id}`, data),
+  completeEvent: (id, data) => api.patch(`/legal/calendar/${id}/complete`, data),
+  deleteEvent: (id) => api.delete(`/legal/calendar/${id}`),
+  // Audit Log
+  getAuditLog: (params) => api.get('/legal/audit-log', { params }),
+};
